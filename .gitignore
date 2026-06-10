@@ -39,3 +39,10 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# OSIM test creds (never commit)
+scripts/osim.local.json
+scripts/osim-pulled-student.json
+
+# Secrets (never commit)
+.env
