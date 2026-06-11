@@ -137,7 +137,24 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  /* Wipe every per-tenant slice so one institution's roster/history/cache can
+   * NEVER bleed into another. The AppState provider is mounted once at the root
+   * and never unmounts, so this state survives a logout — it must be cleared
+   * explicitly whenever the active institution changes. */
+  function resetTenantState() {
+    setLog([]);
+    setResult(null);
+    setLocalCacheCount(0);
+    setOsimConnected(null);
+    setOperator({ name: "", phone: "" });
+    osimCacheRef.current = new Map();
+    cacheRef.current = new Set();
+    queueRef.current = 0;
+    clearScanTimer();
+  }
+
   function selectInstitution(next: Institution) {
+    resetTenantState(); // drop the previous tenant's data before switching
     setInst(next);
     setStaff(next.staff[0]);
     setExam({ ...next.session });
@@ -155,6 +172,38 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       authorized: v.authorized,
     }));
     void saveCacheSnapshot(instId, { verdicts, log: logSnapshot });
+  }
+
+  /* Find a synced verdict by its exam number (the QR's `std`). The cache is
+   * keyed by reg_no, but each cached Student carries `code` = exam_no, so we
+   * match on that for the offline scan path. */
+  function findCachedByExamNo(examNo: string): { student: Student; authorized: boolean } | null {
+    const q = (examNo || "").trim().toLowerCase();
+    if (!q) return null;
+    for (const v of osimCacheRef.current.values()) {
+      if ((v.student.code || "").toLowerCase() === q) return v;
+    }
+    return null;
+  }
+
+  /* Prepend a scan to the session history and persist the snapshot. */
+  function appendLog(student: Student, authorized: boolean, source: ScanSource) {
+    const entry: LogEntry = {
+      regId: student.regId,
+      name: student.name,
+      gender: student.gender,
+      balance: student.balance,
+      authorized,
+      seat: student.seat,
+      method: "scan",
+      source,
+      at: nowTime(),
+    };
+    setLog((prev) => {
+      const next = [entry, ...prev];
+      persistOsimCache(inst.id, next); // persist verdict cache + session log
+      return next;
+    });
   }
 
   /* Live session start: capture the operator, then go to the sync step which
@@ -176,6 +225,11 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         snap.verdicts.map((v) => [v.regId, { student: v.student, authorized: v.authorized }])
       );
       setLog(snap.log ?? []);
+    } else {
+      // No persisted snapshot for THIS institution → start clean so we never
+      // inherit another tenant's in-memory cache/history.
+      osimCacheRef.current = new Map();
+      setLog([]);
     }
     const client = await getOsimClient(instId);
     setOsimConnected(!!client);
@@ -302,6 +356,19 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       operator_phone: operator.phone,
       venue_name: exam.venue,
     });
+    // Online-first (registers the scan server-side + freshest fee/registration
+    // status). On a TRANSPORT failure (error === 0, e.g. no network in the hall)
+    // fall back to the locally-synced roster so scanning still works offline.
+    if (resp.error === 0) {
+      const cached = findCachedByExamNo(qr.examNo);
+      if (cached) {
+        setResult({ student: cached.student, authorized: cached.authorized, source: "cache" });
+        appendLog(cached.student, cached.authorized, "cache");
+        setScanState({ fetchingOnline: false, processing: false });
+        replace("Result");
+        return true;
+      }
+    }
     if (resp.error !== 200 || !resp.data) {
       setScanState({ fetchingOnline: false, processing: false });
       return false; // not found / error → scanner shows "card not recognized"
@@ -311,22 +378,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     osimCacheRef.current.set(student.regId, { student, authorized });
     setLocalCacheCount(osimCacheRef.current.size);
     setResult({ student, authorized, source: "online" });
-    const entry: LogEntry = {
-      regId: student.regId,
-      name: student.name,
-      gender: student.gender,
-      balance: student.balance,
-      authorized,
-      seat: student.seat,
-      method: "scan",
-      source: "online",
-      at: nowTime(),
-    };
-    setLog((prev) => {
-      const next = [entry, ...prev];
-      persistOsimCache(inst.id, next); // persist verdict cache + session log
-      return next;
-    });
+    appendLog(student, authorized, "online");
     setScanState({ fetchingOnline: false, processing: false });
     replace("Result");
     return true;
@@ -418,6 +470,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     // Drop the device's scoped OSIM connections — the next sign-in re-resolves
     // from the directory/secure store for the chosen institution.
     void clearScopedConnections();
+    // Clear the active tenant's in-memory roster/history so it can't show up
+    // under the next institution the operator signs into.
+    resetTenantState();
     resetTo("Institution");
   }
 

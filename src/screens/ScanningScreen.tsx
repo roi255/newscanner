@@ -134,13 +134,13 @@ function ScanningContent({
   accent: string;
 }) {
   let title = "Reading QR code…";
-  let sub = "Matched instantly from local cache";
+  let sub = "Hold steady over the exam-card QR";
   if (notFound) {
     title = "Card not recognized";
     sub = "Try again or use manual lookup";
   } else if (fetchingOnline) {
-    title = "Not in cache — fetching online…";
-    sub = "Requesting record from the server";
+    title = "Verifying…";
+    sub = "Checking registration with the institution";
   }
 
   return (

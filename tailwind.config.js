@@ -38,7 +38,6 @@ module.exports = {
         "jakarta-bold": ["PlusJakartaSans_700Bold"],
         "jakarta-extrabold": ["PlusJakartaSans_800ExtraBold"],
         mono: ["SpaceMono_400Regular"],
-        "mono-bold": ["SpaceMono_700Bold"],
       },
       borderRadius: {
         xs: "8px",

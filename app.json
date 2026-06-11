@@ -32,7 +32,16 @@
       ],
       "expo-secure-store",
       "./plugins/withArm64Only.js",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
+        }
+      ]
     ]
   }
 }

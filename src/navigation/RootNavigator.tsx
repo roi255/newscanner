@@ -100,12 +100,13 @@ function LookupRoute() {
 }
 
 function ProfileRoute() {
-  const { session, inst, logout } = useAppState();
+  const { session, inst, localCacheCount, logout } = useAppState();
   const nav = useNavigation<any>();
   return (
     <ProfileScreen
       session={session}
       institution={inst}
+      cacheCount={inst.osim ? localCacheCount : inst.recordCount}
       onLogout={logout}
       onSwitchInstitution={logout}
       onOpenAccessLog={() => nav.navigate("AccessLog")}

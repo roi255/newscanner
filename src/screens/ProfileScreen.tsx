@@ -13,12 +13,14 @@ import { SessionVM } from "../types";
 export function ProfileScreen({
   session,
   institution,
+  cacheCount,
   onLogout,
   onSwitchInstitution,
   onOpenAccessLog,
 }: {
   session: SessionVM;
   institution: Institution;
+  cacheCount?: number;
   onLogout: () => void;
   onSwitchInstitution: () => void;
   onOpenAccessLog?: () => void;
@@ -27,7 +29,11 @@ export function ProfileScreen({
 
   const settings: { icon: IconName; label: string; sub?: string; onPress?: () => void }[] = [
     { icon: "cap", label: "Switch exam session", sub: session.course },
-    { icon: "history", label: "Access log", sub: "OSIM request / response trail", onPress: onOpenAccessLog },
+    // The OSIM request/response trail is a developer diagnostic — hidden from
+    // live users so invigilators can't inspect the raw access log in production.
+    ...(__DEV__
+      ? [{ icon: "history" as IconName, label: "Access log", sub: "OSIM request / response trail", onPress: onOpenAccessLog }]
+      : []),
     { icon: "bell", label: "Notifications", sub: "Finance alerts on" },
     { icon: "shield", label: "Override permissions", sub: "Supervisor PIN required" },
     { icon: "gear", label: "App settings" },
@@ -65,7 +71,9 @@ export function ProfileScreen({
 
           <View style={{ gap: 1 }}>
             <AppText className="font-jakarta-bold text-[15px] text-text">{institution.name}</AppText>
-            <Body className="text-[12px]">{institution.recordCount.toLocaleString()} records cached locally</Body>
+            <Body className="text-[12px]">
+              {(cacheCount ?? institution.recordCount).toLocaleString()} records cached locally
+            </Body>
           </View>
         </View>
         <Button

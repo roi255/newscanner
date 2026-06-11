@@ -13,7 +13,7 @@ import {
   PlusJakartaSans_700Bold,
   PlusJakartaSans_800ExtraBold,
 } from "@expo-google-fonts/plus-jakarta-sans";
-import { SpaceMono_400Regular, SpaceMono_700Bold } from "@expo-google-fonts/space-mono";
+import { SpaceMono_400Regular } from "@expo-google-fonts/space-mono";
 
 import { ThemeProvider, useTheme } from "./src/theme/ThemeProvider";
 import { AppStateProvider, useAppState } from "./src/state/AppState";
@@ -65,7 +65,6 @@ export default function App() {
     PlusJakartaSans_700Bold,
     PlusJakartaSans_800ExtraBold,
     SpaceMono_400Regular,
-    SpaceMono_700Bold,
   });
 
   if (!fontsLoaded) {
