@@ -46,3 +46,6 @@ scripts/osim-pulled-student.json
 
 # Secrets (never commit)
 .env
+
+# Design prototype (visual spec only, not part of the app build)
+files/
