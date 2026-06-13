@@ -42,5 +42,4 @@ clean:
 
 apk:
 	npx expo prebuild --platform android
-	cd android
-	./gradlew assembleRelease
+	cd android && ./gradlew assembleRelease
