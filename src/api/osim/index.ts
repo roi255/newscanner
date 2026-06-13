@@ -12,6 +12,7 @@ export * from "./accessLog";
 export * from "./eligibility";
 export * from "./client";
 export * from "./directory";
+export * from "./telemetry";
 export * from "./secureStore";
 export * from "./session";
 export * from "./resolver";

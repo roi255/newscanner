@@ -114,6 +114,58 @@ export async function requestOtp(instId: string, email: string): Promise<{ ok: b
   return { ok: !!j?.ok, message: j?.message };
 }
 
+/* ---- reference data (Phase 4): exam categories + per-institution settings ---- */
+
+export interface ExamCategory {
+  code: string;
+  label: string;
+  selectable: boolean;
+}
+
+/** The OSIM exam categories (the in-app `examTypes.ts` list moved to the DB). */
+export async function fetchExamCategories(): Promise<ExamCategory[]> {
+  if (!config.baseUrl) return [];
+  try {
+    const r = await fetch(`${config.baseUrl.replace(/\/+$/, "")}/exam-categories`, { headers: headers() });
+    const j = await r.json().catch(() => null);
+    const list = (j?.data ?? j) as ExamCategory[] | null;
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Per-institution settings as a key→value map (e.g. `eligibility` rules). */
+export async function fetchInstitutionSettings(instId: string): Promise<Record<string, unknown>> {
+  if (!config.baseUrl) return {};
+  try {
+    const r = await fetch(
+      `${config.baseUrl.replace(/\/+$/, "")}/institutions/${encodeURIComponent(instId)}/settings`,
+      { headers: headers() }
+    );
+    const j = await r.json().catch(() => null);
+    const m = j?.data ?? j;
+    return m && typeof m === "object" ? (m as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
+
+/* ---- audit telemetry (Phase 3): one batched POST drains the device queue ---- */
+
+export interface TelemetryBatch {
+  scans?: unknown[];
+  auth?: unknown[];
+  errors?: unknown[];
+}
+
+/** Post a batch of scan/auth/error rows. Returns true only on a confirmed ack,
+ * so the caller keeps the queue until delivery succeeds. */
+export async function sendTelemetry(batch: TelemetryBatch): Promise<boolean> {
+  const j = await postJSON("/telemetry", batch);
+  return !!j?.ok;
+}
+
 /** Verify an OTP code. */
 export async function verifyOtp(
   instId: string,

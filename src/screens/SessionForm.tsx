@@ -10,7 +10,7 @@ import { Button, Chip } from "../components/ui";
 import { I } from "../components/icons";
 import { useTheme } from "../theme/ThemeProvider";
 import { Session } from "../data/exam";
-import { EXAM_TYPES } from "../api/osim";
+import { getSelectableExamTypes } from "../api/osim";
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return <AppText className="text-[12px] font-jakarta-bold text-text-2 mb-1.5 tracking-[0.2px]">{children}</AppText>;
@@ -101,7 +101,7 @@ export function SessionForm({
 
               <FieldLabel>Exam type</FieldLabel>
               <View className="flex-row flex-wrap mb-3" style={{ gap: 8 }}>
-                {EXAM_TYPES.map((c) => (
+                {getSelectableExamTypes().map((c) => (
                   <Chip
                     key={c.value}
                     label={c.label}

@@ -9,13 +9,37 @@
  * fallback that derives the verdict from raw fee + registration fields. */
 import { ExamEnrollment, ExamPermitVerdict } from "./types";
 
-export function evaluateExamPermit(e: ExamEnrollment): ExamPermitVerdict {
-  const org = (e.orgAbbr || "").toLowerCase();
+/** Institution-configurable exam-permit knobs, served from institution_setting
+ * (Phase 4). Defaults reproduce the standard (non-tuma/non-dartu) behaviour; the
+ * DB rows override per institution. */
+export interface EligibilitySettings {
+  feeLoanCounts: boolean; // student loan counts toward fees paid (default true; tuma: false)
+  caThreshold: number; // CA first-installment fraction (default 0.4; tuma: 0.7)
+  caDeductLoan: boolean; // deduct the loan from the CA required amount (default false; tuma: true)
+  blockCarryRetakeFe: boolean; // carry/retake students get no FE card (default false; dartu: true)
+}
 
-  // Student loans count toward fees paid — except for 'tuma' (handled per-branch).
+const DEFAULTS: EligibilitySettings = {
+  feeLoanCounts: true,
+  caThreshold: 0.4,
+  caDeductLoan: false,
+  blockCarryRetakeFe: false,
+};
+
+/** Pull EligibilitySettings out of a fetched institution-settings map (the
+ * `eligibility` key); missing fields fall back to the standard defaults. */
+export function eligibilityFromSettings(settings?: Record<string, unknown> | null): EligibilitySettings {
+  const e = (settings?.eligibility ?? {}) as Partial<EligibilitySettings>;
+  return { ...DEFAULTS, ...e };
+}
+
+export function evaluateExamPermit(e: ExamEnrollment, settings?: Partial<EligibilitySettings>): ExamPermitVerdict {
+  const s: EligibilitySettings = { ...DEFAULTS, ...settings };
+
+  // Student loans count toward fees paid unless the institution opts out.
   let paid = e.feeAmountPaid;
   let required = e.feeRequiredAmount;
-  if (org !== "tuma") paid += e.studentLoanAmount;
+  if (s.feeLoanCounts) paid += e.studentLoanAmount;
 
   const fee = (req: number) => ({ required: req, paid, balance: Math.max(0, req - paid) });
 
@@ -30,7 +54,7 @@ export function evaluateExamPermit(e: ExamEnrollment): ExamPermitVerdict {
 
   if (cat === "fe" || cat === "fe-sup" || cat === "fe-sp") {
     // Final exam: full payment required.
-    if (org === "dartu" && e.isCarryOrRetake) {
+    if (s.blockCarryRetakeFe && e.isCarryOrRetake) {
       return { authorized: false, reason: "Carry/Retake — final exam card not issued", fee: fee(required) };
     }
     allowed = (required === 0 && e.regConfirmStatus === 1) || (e.regConfirmStatus === 1 && paid >= required);
@@ -38,13 +62,13 @@ export function evaluateExamPermit(e: ExamEnrollment): ExamPermitVerdict {
   } else if (cat === "ca" || cat === "ca2") {
     // Continuous assessment: first-installment threshold via payment plan.
     let req = required;
-    if (org === "tuma") req = required - e.studentLoanAmount;
+    if (s.caDeductLoan) req = required - e.studentLoanAmount;
 
     const plans = e.programFeePlan || [];
     if (plans.length > 0 && paid < req) {
       for (const plan of plans) {
         if (plans.length > 1 && plan.semesterId === e.semesterNumericValue && plan.planNo === 1) {
-          allowed = req > 0 ? paid / req >= (org === "tuma" ? 0.7 : 0.4) : false;
+          allowed = req > 0 ? paid / req >= s.caThreshold : false;
         } else if (plans.length === 1 && plan.semesterId === e.semesterNumericValue) {
           allowed = paid >= plan.amount;
         }
@@ -53,7 +77,7 @@ export function evaluateExamPermit(e: ExamEnrollment): ExamPermitVerdict {
       allowed = paid >= req || (req > 0 && paid / req >= 0.5);
     }
     required = req;
-    if (!allowed) reason = `Pay at least ${org === "tuma" ? "70%" : "40%"} (first installment) of semester fees`;
+    if (!allowed) reason = `Pay at least ${Math.round(s.caThreshold * 100)}% (first installment) of semester fees`;
   } else {
     // Other categories: require confirmed registration + cleared fees.
     allowed = e.regConfirmStatus === 1 && (required === 0 || paid >= required);
