@@ -2,6 +2,7 @@
 export type RootStackParamList = {
   Institution: undefined;
   Login: undefined;
+  Otp: undefined;
   Operator: undefined;
   Sync: undefined;
   Main: undefined;

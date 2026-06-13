@@ -11,10 +11,10 @@ import { RootStackParamList, MainTabParamList } from "./types";
 import { BottomTabBar } from "./BottomTabBar";
 import { useTheme } from "../theme/ThemeProvider";
 import { useAppState } from "../state/AppState";
-import { INSTITUTIONS } from "../data/exam";
 
 import { InstitutionScreen } from "../screens/InstitutionScreen";
 import { LoginScreen } from "../screens/LoginScreen";
+import { OtpScreen } from "../screens/OtpScreen";
 import { OperatorScreen } from "../screens/OperatorScreen";
 import { SyncScreen } from "../screens/SyncScreen";
 import { ScanHomeScreen } from "../screens/ScanHomeScreen";
@@ -30,26 +30,37 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 
 /* ---------- route wrappers ---------- */
 function InstitutionRoute() {
-  const { selectInstitution } = useAppState();
-  return <InstitutionScreen institutions={INSTITUTIONS} onSelect={selectInstitution} />;
+  const { institutions, selectInstitution } = useAppState();
+  return <InstitutionScreen institutions={institutions} onSelect={selectInstitution} />;
 }
 
 function LoginRoute() {
-  const { inst, staff, login } = useAppState();
+  const { inst, verifyMembership } = useAppState();
   const nav = useNavigation();
   return (
     <LoginScreen
       institution={inst}
-      staff={staff}
-      onLogin={login}
+      onVerify={verifyMembership}
       onChangeInstitution={() => nav.goBack()}
     />
   );
 }
 
+function OtpRoute() {
+  const { otpEmail, submitOtp, resendOtp } = useAppState();
+  return <OtpScreen email={otpEmail} onSubmit={submitOtp} onResend={resendOtp} />;
+}
+
 function OperatorRoute() {
-  const { inst, startSession } = useAppState();
-  return <OperatorScreen institution={inst} onStart={startSession} />;
+  const { inst, operatorPrefill, startSession } = useAppState();
+  return (
+    <OperatorScreen
+      institution={inst}
+      initialName={operatorPrefill.name}
+      initialPhone={operatorPrefill.phone}
+      onStart={startSession}
+    />
+  );
 }
 
 function SyncRoute() {
@@ -169,6 +180,7 @@ export function RootNavigator() {
     >
       <Stack.Screen name="Institution" component={InstitutionRoute} />
       <Stack.Screen name="Login" component={LoginRoute} />
+      <Stack.Screen name="Otp" component={OtpRoute} />
       <Stack.Screen name="Operator" component={OperatorRoute} />
       <Stack.Screen name="Sync" component={SyncRoute} />
       <Stack.Screen name="Main" component={MainTabs} />

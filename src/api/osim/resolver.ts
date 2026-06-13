@@ -18,16 +18,21 @@ import { getStaticOsimConnection } from "./config";
 import { getValidAccessToken, refreshSession, clearSession } from "./session";
 
 export async function resolveOsimConnection(instId: string): Promise<OsimConnection | null> {
+  // baseUrl + abbr: device cache → central directory. (The directory never
+  // returns a key — production tokens are minted by staff login; see authFor.)
   const cached = await getStoredConnection(instId);
-  if (cached) return cached;
+  const base = cached ?? (await fetchInstitutionConnection(instId));
+  if (base && !cached) await storeConnection(instId, base);
 
-  const fromDirectory = await fetchInstitutionConnection(instId);
-  if (fromDirectory) {
-    await storeConnection(instId, fromDirectory);
-    return fromDirectory;
+  // Dev static config may carry a raw apiKey for local testing. Overlay it onto
+  // the directory connection so keyed tenants keep working once the directory is
+  // configured. (Phase 2 replaces this with served/encrypted keys.)
+  const stat = getStaticOsimConnection(instId);
+  if (base) {
+    const apiKey = base.apiKey ?? stat?.apiKey;
+    return apiKey ? { ...base, apiKey } : base;
   }
-
-  return getStaticOsimConnection(instId);
+  return stat;
 }
 
 function authFor(instId: string, conn: OsimConnection): OsimAuth {

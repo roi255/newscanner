@@ -49,3 +49,9 @@ scripts/osim-pulled-student.json
 
 # Design prototype (visual spec only, not part of the app build)
 files/
+
+# Local backend API stack (runs on the server; never committed or bundled in the APK)
+/api/
+
+# Git bundle export artifact
+newscanner.bundle

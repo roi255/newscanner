@@ -10,6 +10,7 @@ import {
   OsimResponse,
   OsimIdentity,
   OsimStudent,
+  OsimStaffMember,
   ExamCardVerdict,
   ExamCardScanInput,
 } from "./types";
@@ -20,6 +21,10 @@ export interface OsimAuth {
   /** Try to rotate after a 401. Returns true if a fresh token is now available. */
   onUnauthorized?(): Promise<boolean>;
 }
+
+/** Endpoints whose responses are too large to keep in the access log (full
+ * roster / staff directory). Matched as substrings of the request path. */
+const BULK_LOG_PATHS = ["all_clearance_cards", "all_examcards", "staff/all"];
 
 export class OsimClient {
   constructor(private conn: OsimConnection, private auth: OsimAuth) {}
@@ -89,6 +94,11 @@ export class OsimClient {
   }
 
   private log(path: string, request: unknown, response: OsimResponse, ms: number, token: string) {
+    // Bulk-list endpoints return very large arrays (the whole roster / staff
+    // directory). Their responses bloat the in-memory log and crash the viewer
+    // when expanded (JSON.stringify of thousands of records), so keep them out
+    // of the access trail entirely — they'd only confuse the operator anyway.
+    if (BULK_LOG_PATHS.some((p) => path.includes(p))) return;
     logAccess({
       apiKey: maskToken(token),
       title: path,
@@ -124,6 +134,17 @@ export class OsimClient {
   /** api/verification/report — bulk-upload offline scan results. */
   uploadScannedReport(scannedReport: unknown) {
     return this.request("api/verification/report", { scanned_report: scannedReport });
+  }
+
+  /** Staff directory (api.php::staff('all')) — used to confirm a sign-in email
+   * belongs to a registered staff member of this institution. Authed by the same
+   * api_key envelope as the scans and NOT IP-restricted, so it's reachable from
+   * the device. NOTE the path: `staff` is a private method with no REST verb
+   * wrapper, so a direct POST to api/staff/all 404s (REST_Controller looks for
+   * staff_post). We reach it through the public `index` dispatcher instead, which
+   * calls staff() internally — hence api/index/staff/all. */
+  getStaffAll() {
+    return this.request<OsimStaffMember[]>("api/index/staff/all", {});
   }
 
   /** api/verification/all_clearance_cards — the roster sync. Returns ALL

@@ -1,7 +1,7 @@
-/* OperatorScreen — lightweight session sign-in for live scanning. Full staff
- * authentication is hidden for now; we just capture who is operating the
- * scanner (name + phone) so it's stamped on every scan log, then jump straight
- * to scanning. */
+/* OperatorScreen — confirm who is operating this session. Reached after the
+ * email-membership gate, so the name/phone arrive prefilled from the verified
+ * staff record; the operator just confirms (and can fix the phone) before the
+ * details get stamped on every scan log. */
 import React, { useState } from "react";
 import { View } from "react-native";
 import { ScreenScroll } from "../components/Screen";
@@ -14,14 +14,18 @@ import { Institution } from "../data/exam";
 
 export function OperatorScreen({
   institution,
+  initialName = "",
+  initialPhone = "",
   onStart,
 }: {
   institution: Institution;
+  initialName?: string;
+  initialPhone?: string;
   onStart: (name: string, phone: string) => void;
 }) {
   const { tokens } = useTheme();
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [name, setName] = useState(initialName);
+  const [phone, setPhone] = useState(initialPhone);
   const valid = name.trim().length > 1;
 
   return (
@@ -36,7 +40,7 @@ export function OperatorScreen({
         </Body>
       </View>
 
-      <LabelSm className="mb-2.5">Who is operating this session?</LabelSm>
+      <LabelSm className="mb-2.5">Confirm who is operating this session</LabelSm>
       <View style={{ gap: 13 }}>
         <Field iconName="user" value={name} onChangeText={setName} placeholder="Operator name" autoCapitalize="words" />
         <Field
@@ -51,7 +55,7 @@ export function OperatorScreen({
       <View className="flex-row items-center gap-2 mt-3 px-1">
         <I.shield size={15} color={tokens.hex.muted} />
         <Body className="text-[12.5px] flex-1">
-          Your name &amp; phone are stamped on every scan log. Full sign-in comes later.
+          Your name &amp; phone are stamped on every scan log.
         </Body>
       </View>
 

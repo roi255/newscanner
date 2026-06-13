@@ -17,6 +17,10 @@ export interface DirectoryEntry {
   name: string;
   abbr: string;
   baseUrl: string;
+  short: string;
+  location: string;
+  accent: string;
+  logo: string;
 }
 
 type DirectoryConfig = {
@@ -40,7 +44,7 @@ function headers(): Record<string, string> {
   return h;
 }
 
-/** Non-secret listing for the institution search (name, abbr, baseUrl). */
+/** Non-secret listing for the institution search. Empty query → the full list. */
 export async function searchDirectory(query: string): Promise<DirectoryEntry[]> {
   if (!config.baseUrl) return [];
   try {
@@ -53,6 +57,11 @@ export async function searchDirectory(query: string): Promise<DirectoryEntry[]> 
   } catch {
     return [];
   }
+}
+
+/** The full registry (no query) — fetched once, cached on-device, filtered client-side. */
+export async function listInstitutions(): Promise<DirectoryEntry[]> {
+  return searchDirectory("");
 }
 
 /** Fetch the (secret-free) connection for one tenant: { baseUrl, abbr }. The
@@ -74,4 +83,43 @@ export async function fetchInstitutionConnection(instId: string): Promise<OsimCo
   } catch {
     return null;
   }
+}
+
+/* ---- OTP (email second factor, served by the same directory API) ---- */
+
+async function postJSON(path: string, body: unknown): Promise<any> {
+  if (!config.baseUrl) return { ok: false, message: "Verification service unavailable" };
+  try {
+    const r = await fetch(`${config.baseUrl.replace(/\/+$/, "")}${path}`, {
+      method: "POST",
+      headers: { ...headers(), "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    return (await r.json().catch(() => ({}))) ?? {};
+  } catch {
+    return { ok: false, message: "No connection — check your internet and try again" };
+  }
+}
+
+/** Request an OTP for a (already membership-verified) email. In dev the API
+ * echoes the code, which we print to the Metro/npx console so you don't have to
+ * open Mailpit. */
+export async function requestOtp(instId: string, email: string): Promise<{ ok: boolean; message?: string }> {
+  const j = await postJSON("/otp/request", { institution: instId, email });
+  if (__DEV__ && j?.devCode) {
+    console.log(
+      `\n┌──────────────── DEV OTP ────────────────\n│  ${email}\n│  CODE: ${j.devCode}\n└─────────────────────────────────────────\n`
+    );
+  }
+  return { ok: !!j?.ok, message: j?.message };
+}
+
+/** Verify an OTP code. */
+export async function verifyOtp(
+  instId: string,
+  email: string,
+  code: string
+): Promise<{ ok: boolean; message?: string }> {
+  const j = await postJSON("/otp/verify", { institution: instId, email, code });
+  return { ok: !!j?.ok, message: j?.message };
 }

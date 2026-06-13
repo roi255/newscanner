@@ -5,10 +5,7 @@ import React, { createContext, useContext, useEffect, useMemo, useRef, useState 
 import { useTheme } from "../theme/ThemeProvider";
 import { navigate, replace, resetTo, goBack } from "../navigation/navigationRef";
 import {
-  resolveOsimConnection,
   getOsimClient,
-  staffLogin,
-  clearScopedConnection,
   clearScopedConnections,
   getDeviceId,
   parseExamCardQr,
@@ -31,6 +28,8 @@ import {
   makeSeedLog,
 } from "../data/exam";
 import { SessionVM } from "../types";
+import { loadInstitutions } from "../data/institutionsSource";
+import { requestOtp, verifyOtp, isDirectoryConfigured } from "../api/osim/directory";
 
 const nowTime = () => new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
 
@@ -39,6 +38,7 @@ type ResultState = { student: Student; authorized: boolean; source: ScanSource }
 
 type AppStateValue = {
   inst: Institution;
+  institutions: Institution[];
   staff: Staff;
   exam: Session;
   session: SessionVM;
@@ -48,11 +48,15 @@ type AppStateValue = {
   stats: { total: number; authorized: number; denied: number };
   editingSession: boolean;
   operator: { name: string; phone: string };
+  operatorPrefill: { name: string; phone: string };
   localCacheCount: number;
   osimConnected: boolean | null;
 
   selectInstitution: (next: Institution) => void;
-  login: (pin: string) => Promise<{ ok: boolean; message?: string }>;
+  verifyMembership: (email: string) => Promise<{ ok: boolean; message?: string }>;
+  otpEmail: string;
+  submitOtp: (code: string) => Promise<{ ok: boolean; message?: string }>;
+  resendOtp: () => Promise<{ ok: boolean; message?: string }>;
   startSession: (name: string, phone: string) => void;
   syncDone: () => void;
   runOsimSync: () => Promise<number>;
@@ -78,6 +82,11 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const { setAccent } = useTheme();
 
   const [inst, setInst] = useState<Institution>(INSTITUTIONS[0]);
+  // Phase 1: the picker list comes from the central directory (live → cache →
+  // bundle). Bundled INSTITUTIONS stay as the offline / first-run fallback.
+  const [institutions, setInstitutions] = useState<Institution[]>(INSTITUTIONS);
+  // Email pending OTP verification (set after the OSIM membership check passes).
+  const [otpEmail, setOtpEmail] = useState<string>("");
   const [staff, setStaff] = useState<Staff>(INSTITUTIONS[0].staff[0]);
   const [exam, setExam] = useState<Session>({ ...INSTITUTIONS[0].session });
   const [result, setResult] = useState<ResultState>(null);
@@ -88,6 +97,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [log, setLog] = useState<LogEntry[]>(() => makeSeedLog(INSTITUTIONS[0]));
   // Operator running the live session (name + phone) — stamped on every scan.
   const [operator, setOperator] = useState<{ name: string; phone: string }>({ name: "", phone: "" });
+  // Identity prefill for the Operator screen, populated from the verified staff
+  // record after the email-membership check (so the operator isn't retyped).
+  const [operatorPrefill, setOperatorPrefill] = useState<{ name: string; phone: string }>({ name: "", phone: "" });
   const [localCacheCount, setLocalCacheCount] = useState(0);
 
   const queueRef = useRef(0);
@@ -102,6 +114,17 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     logRef.current = log;
   }, [log]);
+
+  // Load the institution list from the directory once on mount.
+  useEffect(() => {
+    let alive = true;
+    loadInstitutions().then((list) => {
+      if (alive && list.length) setInstitutions(list);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const session: SessionVM = useMemo(
     () => ({
@@ -147,6 +170,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setLocalCacheCount(0);
     setOsimConnected(null);
     setOperator({ name: "", phone: "" });
+    setOperatorPrefill({ name: "", phone: "" });
     osimCacheRef.current = new Map();
     cacheRef.current = new Set();
     queueRef.current = 0;
@@ -159,9 +183,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setStaff(next.staff[0]);
     setExam({ ...next.session });
     setAccent(next.accent); // branding comes from the institution
-    // OSIM tenants jump to the lightweight operator form → live scanning.
-    // Mock tenants keep the full (staff) login flow.
-    navigate(next.osim ? "Operator" : "Login");
+    // Every tenant goes through Login first. For OSIM tenants this is the
+    // email-membership gate (verifyMembership); mock tenants get the legacy
+    // form. On success the flow continues to the Operator confirm step.
+    navigate("Login");
   }
 
   /* Persist the OSIM verdict cache + session log for offline resume. */
@@ -239,8 +264,12 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       );
     }
     if (client) {
-      // Roster sync via all_clearance_cards (registration-based; full roster for
-      // the server's CURRENT academic year). Records are in the verdict shape.
+      // Roster PRE-LOAD via all_clearance_cards (registration-based; the server's
+      // CURRENT academic year). This is an OPTIONAL optimization that fills the
+      // offline cache + the "records cached" count. Live scanning never depends
+      // on it: every scan carries its own year_id from the QR, and scanned
+      // students cache individually — so an empty roster here is an expected
+      // state (e.g. the active year isn't set yet), NOT an error.
       const resp = await client.getAllClearanceCards();
       const list = Array.isArray(resp.data) ? resp.data : [];
       // Cache in batches, bumping the count so the sync screen climbs live
@@ -254,10 +283,21 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           await new Promise((r) => setTimeout(r, 16)); // yield a frame so it renders
         }
       }
-      if (__DEV__ && resp.error !== 200) {
-        console.warn(
-          `[OSIM sync] all_clearance_cards → ${resp.error} ${resp.message}. The server's CURRENT academic year has no roster — set the current year to the active one (e.g. 2025/2026) in OSIM admin.`
-        );
+      if (__DEV__) {
+        if (resp.error === 200 && list.length > 0) {
+          console.log(`[OSIM sync] Pre-loaded ${list.length} clearance records for offline scanning.`);
+        } else if (resp.error === 404 || list.length === 0) {
+          // The common case when the active academic year has no roster yet.
+          console.log(
+            "[OSIM sync] No offline roster for the current term — running ONLINE: live scans work and each student caches as they're scanned. (To pre-load offline, set the active academic year in OSIM admin.)"
+          );
+        } else if (resp.error === 401 || resp.error === 403) {
+          console.warn(`[OSIM sync] Roster blocked (${resp.error} ${resp.message}). Check the institution api_key.`);
+        } else if (resp.error === 0) {
+          console.log("[OSIM sync] Offline — couldn't pre-load the roster; live scans will cache as you go.");
+        } else {
+          console.log(`[OSIM sync] Roster unavailable (${resp.error} ${resp.message}); running online.`);
+        }
       }
     }
     setLocalCacheCount(osimCacheRef.current.size);
@@ -265,23 +305,76 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     return osimCacheRef.current.size;
   }
 
-  /* Staff login. For OSIM-connected tenants this mints a short-lived token and
-   * confirms the account's institution matches the selected one (the "correct
-   * client" guarantee happens here, cryptographically tied to auth). Mock tenants
-   * just proceed. Returns an error message for the form to display. */
-  async function login(pin: string): Promise<{ ok: boolean; message?: string }> {
-    const conn = await resolveOsimConnection(inst.id);
-    if (conn?.baseUrl) {
-      const res = await staffLogin(inst.id, conn.baseUrl, staff.id, pin);
-      if (!res.ok) return { ok: false, message: res.message };
-      const got = (res.identity?.instabbr || res.identity?.instid || "").toLowerCase();
-      if (got && conn.abbr && got !== conn.abbr.toLowerCase()) {
-        await clearScopedConnection(inst.id);
-        return { ok: false, message: `This account belongs to ${res.identity?.instname || got}, not ${inst.name}` };
-      }
+  /* Email-membership sign-in. We can't authenticate a staff *password* without
+   * an OSIM change we're not authorized to make, so the gate is: the email must
+   * belong to a registered staff member of THIS institution. Each OSIM tenant's
+   * DB holds only its own users, so a match in `api/staff/all` proves the person
+   * is real staff at the selected college. This proves membership, not identity
+   * (no password) — a deliberate floor. On success we adopt the matched record
+   * as the operator identity and move to the Operator confirm step.
+   * Mock tenants (no OSIM) just proceed. */
+  async function verifyMembership(email: string): Promise<{ ok: boolean; message?: string }> {
+    if (!inst.osim) {
+      navigate("Operator");
+      return { ok: true };
     }
-    navigate("Sync");
+    const q = email.trim().toLowerCase();
+    if (!q || !q.includes("@")) {
+      return { ok: false, message: "Enter the email address you use on OSIM" };
+    }
+    const client = await getOsimClient(inst.id);
+    if (!client) {
+      setOsimConnected(false);
+      return { ok: false, message: `Not connected to ${inst.name}. Contact your administrator.` };
+    }
+    const resp = await client.getStaffAll();
+    if (resp.error !== 200 || !Array.isArray(resp.data)) {
+      // 0 = transport/offline, 401/403 = bad key, anything else = server issue.
+      const msg =
+        resp.error === 0
+          ? "No connection — check your internet and try again"
+          : resp.message || "Couldn't reach the staff directory. Try again.";
+      return { ok: false, message: msg };
+    }
+    // Match on email (the asked-for credential); fall back to login_id so a
+    // staffer who types their OSIM username instead of email still gets in.
+    const match = resp.data.find(
+      (s) => (s.email || "").trim().toLowerCase() === q || (s.login_id || "").trim().toLowerCase() === q
+    );
+    if (!match) {
+      return { ok: false, message: `No staff account with this email at ${inst.name}.` };
+    }
+    const fullName =
+      [match.first_name, match.middle_name, match.last_name].map((p) => (p || "").trim()).filter(Boolean).join(" ") ||
+      match.email ||
+      "Staff";
+    setStaff({ id: match.login_id || match.email || q, name: fullName, role: match.role || "Staff" });
+    setOperatorPrefill({ name: fullName, phone: (match.phone || "").trim() });
+    setOsimConnected(true);
+    // Second factor: email OTP — only when the directory/OTP service is
+    // configured. Fires AFTER the OSIM membership check, never before.
+    if (isDirectoryConfigured()) {
+      const sent = await requestOtp(inst.id, q);
+      if (!sent.ok) return { ok: false, message: sent.message || "Couldn't send your verification code" };
+      setOtpEmail(q);
+      navigate("Otp");
+      return { ok: true };
+    }
+    navigate("Operator");
     return { ok: true };
+  }
+
+  async function submitOtp(code: string): Promise<{ ok: boolean; message?: string }> {
+    const r = await verifyOtp(inst.id, otpEmail, code);
+    if (r.ok) {
+      navigate("Operator");
+      return { ok: true };
+    }
+    return { ok: false, message: r.message };
+  }
+
+  async function resendOtp(): Promise<{ ok: boolean; message?: string }> {
+    return requestOtp(inst.id, otpEmail);
   }
 
   function syncDone() {
@@ -478,6 +571,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   const value: AppStateValue = {
     inst,
+    institutions,
     staff,
     exam,
     session,
@@ -487,10 +581,14 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     stats,
     editingSession,
     operator,
+    operatorPrefill,
     localCacheCount,
     osimConnected,
     selectInstitution,
-    login,
+    verifyMembership,
+    otpEmail,
+    submitOtp,
+    resendOtp,
     startSession,
     syncDone,
     runOsimSync,

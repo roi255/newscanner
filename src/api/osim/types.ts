@@ -46,6 +46,28 @@ export interface OsimIdentity {
   instremote?: string | null;
 }
 
+/** One staff record from `api/staff/all` (api.php::staff('all')). Used for the
+ * email-membership check: an email that matches a record here proves the person
+ * is registered staff at this institution (each tenant's DB holds only its own
+ * users). No password is involved — see verifyMembership() in AppState. */
+export interface OsimStaffMember {
+  reg_code: string | null;
+  first_name: string | null;
+  middle_name: string | null;
+  last_name: string | null;
+  gender: string | null;
+  salutation: string | null;
+  employee_id: string | null;
+  email: string | null;
+  phone: string | null;
+  nationality: string | null;
+  login_id: string | null;
+  department: string | null;
+  department_code: string | null;
+  teaching_level: string | null;
+  role: string | null;
+}
+
 /** Subset of student/basicInformation (getStudentInformation). */
 export interface OsimStudent {
   registration_number: string;

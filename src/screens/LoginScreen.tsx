@@ -1,5 +1,7 @@
-/* LoginScreen — scoped staff credential + PIN. Shows the selected institution
- * with a Change link back to the registry search. */
+/* LoginScreen — institution-scoped access gate. The operator enters the email
+ * they use on OSIM; we verify it belongs to a registered staff member of the
+ * selected institution (api/staff/all) before letting them in. No password —
+ * this confirms membership, not identity (see verifyMembership in AppState). */
 import React, { useState } from "react";
 import { View, Pressable } from "react-native";
 import { ScreenScroll } from "../components/Screen";
@@ -8,34 +10,36 @@ import { Card, Field, Button } from "../components/ui";
 import { I } from "../components/icons";
 import { useTheme } from "../theme/ThemeProvider";
 import { glow } from "../theme/util";
-import { Institution, Staff } from "../data/exam";
+import { Institution } from "../data/exam";
 
 export function LoginScreen({
   institution,
-  staff,
-  onLogin,
+  onVerify,
   onChangeInstitution,
 }: {
   institution: Institution;
-  staff: Staff;
-  onLogin: (pin: string) => Promise<{ ok: boolean; message?: string }>;
+  onVerify: (email: string) => Promise<{ ok: boolean; message?: string }>;
   onChangeInstitution: () => void;
 }) {
   const { tokens } = useTheme();
-  const [pin, setPin] = useState("");
+  const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit() {
     if (submitting) return;
+    if (!email.trim()) {
+      setError("Enter the email address you use on OSIM");
+      return;
+    }
     setSubmitting(true);
     setError(null);
-    const res = await onLogin(pin);
+    const res = await onVerify(email.trim());
     if (!res.ok) {
-      setError(res.message || "Sign-in failed");
+      setError(res.message || "Verification failed");
       setSubmitting(false);
     }
-    // on success the screen navigates away (Sync) and unmounts
+    // on success the screen navigates away (Operator) and unmounts
   }
 
   return (
@@ -49,9 +53,9 @@ export function LoginScreen({
             {institution.short}
           </AppText>
         </View>
-        <H1 className="mt-[18px] text-[26px]">Sign in</H1>
-        <Body className="mt-1.5 text-center" style={{ maxWidth: 250 }}>
-          Verify your scanner credentials to continue
+        <H1 className="mt-[18px] text-[26px]">Verify access</H1>
+        <Body className="mt-1.5 text-center" style={{ maxWidth: 260 }}>
+          Enter the email you use on OSIM to continue
         </Body>
       </View>
 
@@ -71,16 +75,17 @@ export function LoginScreen({
       </Pressable>
 
       <View style={{ gap: 13 }}>
-        <Field iconName="user" value={staff.id} editable={false} />
         <Field
-          iconName="lock"
-          value={pin}
+          iconName="user"
+          value={email}
           onChangeText={(v) => {
-            setPin(v);
+            setEmail(v);
             if (error) setError(null);
           }}
-          secureTextEntry
-          placeholder="PIN"
+          placeholder="name@institution.ac.tz"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
           onSubmitEditing={handleSubmit}
         />
         {error ? (
@@ -93,7 +98,7 @@ export function LoginScreen({
 
       <View className="mt-auto pt-6">
         <Button
-          title={submitting ? "Signing in…" : "Sign in"}
+          title={submitting ? "Verifying…" : "Continue"}
           onPress={handleSubmit}
           disabled={submitting}
           iconRightName={submitting ? undefined : "chevron"}
@@ -101,7 +106,7 @@ export function LoginScreen({
         <View className="flex-row items-center justify-center gap-2 mt-4">
           <I.shield size={15} color={tokens.hex.muted} />
           <AppText className="text-[12.5px] font-jakarta-semibold text-muted">
-            Authenticating against {institution.short}
+            Checking the {institution.short} staff directory
           </AppText>
         </View>
       </View>

@@ -1,4 +1,5 @@
 import "./global.css";
+import "./src/api/osim/directoryConfig"; // configure the directory from env (side-effect)
 import React, { useMemo } from "react";
 import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";

@@ -41,7 +41,7 @@ export function InstitutionScreen({
       </View>
       <H1>Find your institution</H1>
       <Body className="mt-2 mb-[18px]">
-        Search the institutions registered with ExamPass. Pick where you're invigilating today.
+        Search the institutions registered with ExamPass.
       </Body>
 
       <Field
@@ -69,12 +69,6 @@ export function InstitutionScreen({
                 <View className="min-w-0 flex-1" style={{ gap: 3 }}>
                   <AppText className="font-jakarta-bold text-[15.5px] leading-[18px] text-text">{inst.name}</AppText>
                   <Body className="text-[12.5px]">{inst.location}</Body>
-                  <View className="flex-row items-center gap-1.5 mt-0.5">
-                    <I.user size={13} color={tokens.hex.muted} />
-                    <AppText className="text-[11.5px] font-jakarta-semibold text-muted">
-                      {inst.recordCount.toLocaleString()} students
-                    </AppText>
-                  </View>
                 </View>
               </View>
               <I.chevron size={20} color={tokens.hex.muted} />

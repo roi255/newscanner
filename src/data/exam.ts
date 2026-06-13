@@ -5,6 +5,7 @@
  *   • POST /auth   {institutionId, staffId}  → scoped session token
  *   • GET /institutions/{id}/students        → synced into the local cache
  *   • GET /students/{code}                   → single record (online fallback) */
+import { TENANTS } from "./institutions";
 
 export type ScanSource = "cache" | "online";
 export type ScanMethod = "scan" | "lookup";
@@ -110,51 +111,36 @@ function S(
   };
 }
 
-export const INSTITUTIONS: Institution[] = [
-  {
-    // Live OSIM-connected tenant (see src/api/osim/config.ts).
-    id: "stemmuco",
-    name: "Stella Maris Mtwara University College",
-    short: "STE",
-    location: "Mtwara, Tanzania",
-    accent: "#1f6f4a",
-    logo: "https://stemmuco.osim.cloud/themes/img/logo.jpg",
-    recordCount: 0,
-    session: {
-      code: "FE",
-      name: "Final Examinations",
-      venue: "Main Hall",
-      date: new Date().toISOString().slice(0, 10),
-      time: "09:00 – 12:00",
-      examCategory: "fe",
-      semester: "1",
-    },
-    staff: [{ id: "operator", name: "Operator", role: "Invigilator" }],
-    students: [],
-    osim: true,
-  },
-  {
-    id: "makumira",
-    name: "Tumaini University Makumira",
-    short: "TUMA",
-    location: "Usa River, Arusha",
-    accent: "#2456b8",
-    logo: "https://osim.makumira.ac.tz/themes/img/logo.jpg",
-    recordCount: 0,
-    session: {
-      code: "FE",
-      name: "Final Examinations",
-      venue: "Main Hall",
-      date: new Date().toISOString().slice(0, 10),
-      time: "09:00 – 12:00",
-      examCategory: "fe",
-      semester: "1",
-    },
-    staff: [{ id: "operator", name: "Operator", role: "Invigilator" }],
-    students: [],
-    osim: true,
-  },
-];
+/* Default exam session every tenant starts with (overridden by the operator). */
+export function defaultSession(): Session {
+  return {
+    code: "FE",
+    name: "Final Examinations",
+    venue: "Main Hall",
+    date: new Date().toISOString().slice(0, 10),
+    time: "09:00 – 12:00",
+    examCategory: "fe",
+    semester: "1",
+  };
+}
+
+/* The college list, derived from the bundled tenant registry (institutions.ts).
+ * Every tenant is a live OSIM tenant → operator flow + real exam-card scanning;
+ * a tenant only scans once its API key is present (see src/api/osim/config.ts).
+ * This whole array becomes a network call once the central directory exists. */
+export const INSTITUTIONS: Institution[] = TENANTS.map((t) => ({
+  id: t.id,
+  name: t.name,
+  short: t.short,
+  location: t.location,
+  accent: t.accent,
+  logo: `${t.baseUrl}/themes/img/logo.jpg`,
+  recordCount: 0,
+  session: defaultSession(),
+  staff: [{ id: "operator", name: "Operator", role: "Invigilator" }],
+  students: [],
+  osim: true,
+}));
 
 export function money(symbol: string, n: number): string {
   return symbol + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
