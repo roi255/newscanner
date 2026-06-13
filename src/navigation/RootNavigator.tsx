@@ -101,8 +101,8 @@ function HomeRoute() {
 }
 
 function HistoryRoute() {
-  const { session, log, openEntry } = useAppState();
-  return <HistoryScreen session={session} log={log} onOpenResult={openEntry} />;
+  const { session, log, openEntry, clearHistory } = useAppState();
+  return <HistoryScreen session={session} log={log} onOpenResult={openEntry} onClear={clearHistory} />;
 }
 
 function LookupRoute() {
@@ -111,15 +111,18 @@ function LookupRoute() {
 }
 
 function ProfileRoute() {
-  const { session, inst, localCacheCount, logout } = useAppState();
+  const { session, inst, localCacheCount, logout, openSessionForm, settings, setSetting } = useAppState();
   const nav = useNavigation<any>();
   return (
     <ProfileScreen
       session={session}
       institution={inst}
       cacheCount={inst.osim ? localCacheCount : inst.recordCount}
+      settings={settings}
+      onSetSetting={setSetting}
       onLogout={logout}
       onSwitchInstitution={logout}
+      onSwitchSession={openSessionForm}
       onOpenAccessLog={() => nav.navigate("AccessLog")}
     />
   );

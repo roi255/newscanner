@@ -81,40 +81,6 @@ export interface LogEntry {
   examCategory?: string;
 }
 
-function S(
-  code: string,
-  name: string,
-  gender: string,
-  regId: string,
-  program: string,
-  year: string,
-  level: string,
-  seat: string,
-  balance: number,
-  cached = true
-): Student {
-  const deg = program.replace(/[^A-Za-z ]/g, "").trim().split(" ")[0].toUpperCase();
-  const lvlNum = parseInt((level || "").replace(/\D/g, ""), 10) || 100;
-  const intake = String((2026 - Math.floor(lvlNum / 100)) % 100).padStart(2, "0");
-  return {
-    code,
-    name,
-    firstName: name.split(" ")[0],
-    gender,
-    regId,
-    program,
-    year,
-    level,
-    seat,
-    photo: null,
-    balance,
-    currency: "$",
-    cached,
-    classCode: deg + intake + "-SEP",
-    semester: "Semester 2",
-  };
-}
-
 /* Default exam session every tenant starts with (overridden by the operator). */
 export function defaultSession(): Session {
   return {

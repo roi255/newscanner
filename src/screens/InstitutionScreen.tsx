@@ -83,7 +83,7 @@ export function InstitutionScreen({
             </View>
             <AppText className="font-jakarta-bold text-[16px] text-text">No institution found</AppText>
             <Body className="text-[13.5px] text-center" style={{ maxWidth: 230 }}>
-              “{q}” isn't registered with ExamPass yet. Check the spelling or contact your administrator.
+              “{q}” isn’t registered with ExamPass yet. Check the spelling or contact your administrator.
             </Body>
           </Card>
         ) : null}

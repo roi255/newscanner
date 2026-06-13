@@ -13,8 +13,8 @@ import {
   StyleProp,
   ViewStyle,
 } from "react-native";
-import { AppText, Body, H2, LabelSm, Mono } from "./Typography";
-import { I, IconName, IconProps } from "./icons";
+import { AppText, Body, H1, H2, LabelSm, Mono } from "./Typography";
+import { I, IconName } from "./icons";
 import { useTheme } from "../theme/ThemeProvider";
 import { shadowSm, glow } from "../theme/util";
 
@@ -289,6 +289,40 @@ export function InstitutionLogo({
           style={{ position: "absolute", top: size * 0.08, left: size * 0.08, width: size * 0.84, height: size * 0.84 }}
         />
       )}
+    </View>
+  );
+}
+
+/* ---------- ScreenHeader ---------- */
+/* The centered "media + title + subtitle" block shared by the Login (Verify
+ * access), Operator (Start scanning) and OTP screens. `media` is the glowing
+ * logo/icon node; the className props keep each screen's small variations. */
+export function ScreenHeader({
+  media,
+  title,
+  subtitle,
+  titleClassName = "",
+  subtitleClassName = "mt-1.5",
+  subtitleMaxWidth = 280,
+  className = "mt-[22px] mb-[26px]",
+}: {
+  media: React.ReactNode;
+  title: string;
+  subtitle?: React.ReactNode;
+  titleClassName?: string;
+  subtitleClassName?: string;
+  subtitleMaxWidth?: number;
+  className?: string;
+}) {
+  return (
+    <View className={`items-center ${className}`}>
+      {media}
+      <H1 className={`mt-[18px] text-[26px] ${titleClassName}`}>{title}</H1>
+      {subtitle != null ? (
+        <Body className={`text-center ${subtitleClassName}`} style={{ maxWidth: subtitleMaxWidth }}>
+          {subtitle}
+        </Body>
+      ) : null}
     </View>
   );
 }

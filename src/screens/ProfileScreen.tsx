@@ -9,39 +9,50 @@ import { I, IconName } from "../components/icons";
 import { useTheme } from "../theme/ThemeProvider";
 import { Institution } from "../data/exam";
 import { SessionVM } from "../types";
+import type { AppSettings } from "../state/AppState";
 
 export function ProfileScreen({
   session,
   institution,
   cacheCount,
+  settings,
+  onSetSetting,
   onLogout,
   onSwitchInstitution,
+  onSwitchSession,
   onOpenAccessLog,
 }: {
   session: SessionVM;
   institution: Institution;
   cacheCount?: number;
+  settings: AppSettings;
+  onSetSetting: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => void;
   onLogout: () => void;
   onSwitchInstitution: () => void;
+  onSwitchSession: () => void;
   onOpenAccessLog?: () => void;
 }) {
   const { tokens, theme, toggleTheme } = useTheme();
 
-  const settings: { icon: IconName; label: string; sub?: string; onPress?: () => void }[] = [
-    { icon: "cap", label: "Switch exam session", sub: session.course },
-    // The OSIM request/response trail is a developer diagnostic — hidden from
-    // live users so invigilators can't inspect the raw access log in production.
+  // Toggle settings (render as switch rows). Dark mode is theme state; the rest
+  // are persisted app settings that drive real scan behaviour.
+  const toggles: { icon: IconName; label: string; sub: string; value: boolean; onToggle: (v: boolean) => void }[] = [
+    { icon: "flash", label: "Dark mode", sub: theme === "dark" ? "On" : "Off", value: theme === "dark", onToggle: toggleTheme },
+    { icon: "signal", label: "Haptic feedback", sub: "Vibrate on every scan (stronger when blocked)", value: settings.haptics, onToggle: (v) => onSetSetting("haptics", v) },
+  ];
+
+  // Action rows (render with a chevron). Access log is a dev-only diagnostic,
+  // hidden in production so invigilators can't inspect the raw OSIM trail.
+  const actions: { icon: IconName; label: string; sub?: string; onPress?: () => void }[] = [
+    { icon: "cap", label: "Switch exam session", sub: session.course, onPress: onSwitchSession },
     ...(__DEV__
       ? [{ icon: "history" as IconName, label: "Access log", sub: "OSIM request / response trail", onPress: onOpenAccessLog }]
       : []),
-    { icon: "bell", label: "Notifications", sub: "Finance alerts on" },
-    { icon: "shield", label: "Override permissions", sub: "Supervisor PIN required" },
-    { icon: "gear", label: "App settings" },
   ];
 
   return (
     <ScreenScroll contentClassName="px-[22px] pt-1 pb-6">
-      <AppBar title="Profile" />
+      <AppBar title="Configurations" />
 
       {/* identity */}
       <Card className="p-[18px] mb-4 flex-row items-center" style={{ gap: 15 }}>
@@ -86,37 +97,44 @@ export function ProfileScreen({
         />
       </Card>
 
-      {/* settings list */}
+      {/* settings list — toggles first, then action rows */}
       <Card className="overflow-hidden mb-4">
-        {/* dark mode toggle */}
-        <View className="flex-row items-center justify-between px-4 py-3.5">
-          <View className="flex-row items-center gap-3">
-            <View className="w-9 h-9 rounded-sm bg-accent-soft items-center justify-center">
-              <I.flash size={19} color={tokens.hex["accent-ink"]} />
-            </View>
-            <View style={{ gap: 1 }}>
-              <AppText className="font-jakarta-bold text-[14.5px] text-text">Dark mode</AppText>
-              <Body className="text-[12px]">{theme === "dark" ? "On" : "Off"}</Body>
-            </View>
-          </View>
-          <Switch
-            value={theme === "dark"}
-            onValueChange={toggleTheme}
-            trackColor={{ true: tokens.hex.accent, false: tokens.hex["line-strong"] }}
-            thumbColor="#fff"
-          />
-        </View>
-        {settings.map((it, i) => {
-          const Glyph = I[it.icon];
+        {toggles.map((t, i) => {
+          const Glyph = I[t.icon];
           return (
-            <View key={i}>
-              <Divider className="ml-[60px]" />
-              <Pressable onPress={it.onPress} className="flex-row items-center justify-between px-4 py-3.5" style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}>
-                <View className="flex-row items-center gap-3">
+            <View key={t.label}>
+              {i > 0 ? <Divider className="ml-[60px]" /> : null}
+              <View className="flex-row items-center justify-between px-4 py-3.5">
+                <View className="flex-row items-center gap-3 flex-1">
                   <View className="w-9 h-9 rounded-sm bg-accent-soft items-center justify-center">
                     <Glyph size={19} color={tokens.hex["accent-ink"]} />
                   </View>
-                  <View style={{ gap: 1 }}>
+                  <View style={{ gap: 1 }} className="flex-1">
+                    <AppText className="font-jakarta-bold text-[14.5px] text-text">{t.label}</AppText>
+                    <Body className="text-[12px]">{t.sub}</Body>
+                  </View>
+                </View>
+                <Switch
+                  value={t.value}
+                  onValueChange={t.onToggle}
+                  trackColor={{ true: tokens.hex.accent, false: tokens.hex["line-strong"] }}
+                  thumbColor="#fff"
+                />
+              </View>
+            </View>
+          );
+        })}
+        {actions.map((it) => {
+          const Glyph = I[it.icon];
+          return (
+            <View key={it.label}>
+              <Divider className="ml-[60px]" />
+              <Pressable onPress={it.onPress} className="flex-row items-center justify-between px-4 py-3.5" style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}>
+                <View className="flex-row items-center gap-3 flex-1">
+                  <View className="w-9 h-9 rounded-sm bg-accent-soft items-center justify-center">
+                    <Glyph size={19} color={tokens.hex["accent-ink"]} />
+                  </View>
+                  <View style={{ gap: 1 }} className="flex-1">
                     <AppText className="font-jakarta-bold text-[14.5px] text-text">{it.label}</AppText>
                     {it.sub ? <Body className="text-[12px]">{it.sub}</Body> : null}
                   </View>

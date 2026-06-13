@@ -11,7 +11,7 @@ import { useTheme } from "../theme/ThemeProvider";
 const META: Record<string, { label: string; icon: IconName }> = {
   Home: { label: "Home", icon: "scan" },
   History: { label: "History", icon: "history" },
-  Profile: { label: "Profile", icon: "user" },
+  Profile: { label: "Configurations", icon: "gear" },
 };
 
 export function BottomTabBar({ state, navigation }: BottomTabBarProps) {
@@ -39,7 +39,7 @@ export function BottomTabBar({ state, navigation }: BottomTabBarProps) {
         return (
           <Pressable key={route.key} onPress={onPress} className="flex-1 items-center py-1.5" style={{ gap: 4 }}>
             <Glyph size={24} color={color} />
-            <AppText className={`text-[10.5px] font-jakarta-bold ${isActive ? "text-accent" : "text-muted"}`}>
+            <AppText numberOfLines={1} className={`text-[10.5px] font-jakarta-bold ${isActive ? "text-accent" : "text-muted"}`}>
               {meta.label}
             </AppText>
           </Pressable>

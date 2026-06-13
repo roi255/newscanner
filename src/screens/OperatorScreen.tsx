@@ -5,8 +5,8 @@
 import React, { useState } from "react";
 import { View } from "react-native";
 import { ScreenScroll } from "../components/Screen";
-import { H1, Body, AppText, LabelSm } from "../components/Typography";
-import { Field, Button, InstitutionLogo } from "../components/ui";
+import { Body, LabelSm } from "../components/Typography";
+import { Field, Button, InstitutionLogo, ScreenHeader } from "../components/ui";
 import { I } from "../components/icons";
 import { useTheme } from "../theme/ThemeProvider";
 import { glow } from "../theme/util";
@@ -30,15 +30,15 @@ export function OperatorScreen({
 
   return (
     <ScreenScroll contentClassName="px-[22px] pt-4 pb-8 grow">
-      <View className="items-center mt-[22px] mb-[26px]">
-        <View style={glow(tokens.hex.accent, 0.4, 14, 30)}>
-          <InstitutionLogo short={institution.short} logo={institution.logo} size={72} radius={24} textSize={24} />
-        </View>
-        <H1 className="mt-[18px] text-[26px]">Start scanning</H1>
-        <Body className="mt-1.5 text-center" style={{ maxWidth: 280 }}>
-          {institution.name}
-        </Body>
-      </View>
+      <ScreenHeader
+        media={
+          <View style={glow(tokens.hex.accent, 0.4, 14, 30)}>
+            <InstitutionLogo short={institution.short} logo={institution.logo} size={72} radius={24} textSize={24} />
+          </View>
+        }
+        title="Start scanning"
+        subtitle={institution.name}
+      />
 
       <LabelSm className="mb-2.5">Confirm who is operating this session</LabelSm>
       <View style={{ gap: 13 }}>

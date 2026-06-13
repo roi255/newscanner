@@ -1,10 +1,9 @@
 /* LookupScreen — manual verification by registration ID when a card won't scan. */
 import React, { useState } from "react";
-import { View, Pressable } from "react-native";
+import { View } from "react-native";
 import { ScreenScroll } from "../components/Screen";
 import { H2, Body, AppText, LabelSm, Mono } from "../components/Typography";
-import { Card, Field, Button, Chip, Divider, Pill, StudentPhoto } from "../components/ui";
-import { AppBar } from "../components/ui";
+import { Card, Field, Button, Chip, Divider, Pill, StudentPhoto, AppBar } from "../components/ui";
 import { LogRow } from "./LogRow";
 import { I } from "../components/icons";
 import { useTheme } from "../theme/ThemeProvider";
@@ -38,7 +37,7 @@ export function LookupScreen({
   return (
     <ScreenScroll contentClassName="px-[22px] pt-1 pb-6">
       <AppBar title="Manual lookup" sub="When a card won't scan" />
-      <Body className="mb-3.5">Enter the student's registration ID to verify them manually.</Body>
+      <Body className="mb-3.5">Enter the student’s registration ID to verify them manually.</Body>
 
       <Field
         iconName="id"

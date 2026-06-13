@@ -4,8 +4,8 @@
 import React, { useState } from "react";
 import { View, Pressable } from "react-native";
 import { ScreenScroll } from "../components/Screen";
-import { H1, Body, AppText } from "../components/Typography";
-import { Field, Button } from "../components/ui";
+import { AppText } from "../components/Typography";
+import { Field, Button, ScreenHeader } from "../components/ui";
 import { I } from "../components/icons";
 import { useTheme } from "../theme/ThemeProvider";
 import { glow } from "../theme/util";
@@ -51,18 +51,21 @@ export function OtpScreen({
 
   return (
     <ScreenScroll contentClassName="px-[22px] pt-4 pb-8 grow">
-      <View className="items-center mt-[22px]">
-        <View
-          className="w-[72px] h-[72px] rounded-lg bg-accent items-center justify-center"
-          style={glow(tokens.hex.accent, 0.4, 14, 30)}
-        >
-          <I.shield size={30} color="#fff" />
-        </View>
-        <H1 className="mt-[18px] text-[26px] leading-[34px]">Enter your code</H1>
-        <Body className="mt-3 text-center" style={{ maxWidth: 280 }}>
-          A code was sent to {email}
-        </Body>
-      </View>
+      <ScreenHeader
+        className="mt-[22px]"
+        media={
+          <View
+            className="w-[72px] h-[72px] rounded-lg bg-accent items-center justify-center"
+            style={glow(tokens.hex.accent, 0.4, 14, 30)}
+          >
+            <I.shield size={30} color="#fff" />
+          </View>
+        }
+        title="Enter your code"
+        titleClassName="leading-[34px]"
+        subtitle={`A code was sent to ${email}`}
+        subtitleClassName="mt-3"
+      />
 
       <View className="flex-1 items-center justify-center" style={{ gap: 16, paddingBottom: 150 }}>
         <Field

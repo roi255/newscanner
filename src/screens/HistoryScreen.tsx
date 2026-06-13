@@ -1,6 +1,6 @@
 /* HistoryScreen — session scan log with filters + counts. */
 import React, { useState } from "react";
-import { View } from "react-native";
+import { View, Pressable, Alert } from "react-native";
 import { ScreenScroll } from "../components/Screen";
 import { AppText, LabelSm } from "../components/Typography";
 import { Card, Chip, AppBar } from "../components/ui";
@@ -16,10 +16,12 @@ export function HistoryScreen({
   session,
   log,
   onOpenResult,
+  onClear,
 }: {
   session: SessionVM;
   log: LogEntry[];
   onOpenResult: (e: LogEntry) => void;
+  onClear: () => void;
 }) {
   const { tokens } = useTheme();
   const [filter, setFilter] = useState<Filter>("all");
@@ -27,9 +29,30 @@ export function HistoryScreen({
   const authCount = log.filter((e) => e.authorized).length;
   const denyCount = log.length - authCount;
 
+  function confirmClear() {
+    Alert.alert(
+      "Clear scan history?",
+      "This removes every scanned card from this session on this device. It can't be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Clear", style: "destructive", onPress: onClear },
+      ]
+    );
+  }
+
   return (
     <ScreenScroll contentClassName="px-[22px] pt-1 pb-6">
-      <AppBar title="Scan history" sub={session.course} />
+      <AppBar
+        title="Scan history"
+        sub={session.course}
+        right={
+          log.length > 0 ? (
+            <Pressable onPress={confirmClear} hitSlop={8} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+              <AppText className="text-danger font-jakarta-bold text-[13px]">Clear</AppText>
+            </Pressable>
+          ) : undefined
+        }
+      />
 
       <Card className="p-[18px] mb-4">
         <View className="flex-row items-center justify-between">

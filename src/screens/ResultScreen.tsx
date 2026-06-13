@@ -203,8 +203,11 @@ export function ResultScreen({
           </View>
         ) : (
           <View style={{ gap: 11 }}>
+            {/* Deferred until wired — re-enable when the finance-office notify and
+                supervisor-override flows are defined.
             <Button title="Notify finance office" variant="danger-soft" iconName="bell" />
             <Button title="Supervisor override" variant="ghost" iconName="shield" />
+            */}
             <Button title="Scan next student" onPress={onScanNext} iconName="scan" />
           </View>
         )}

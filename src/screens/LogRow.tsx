@@ -7,7 +7,9 @@ import { I } from "../components/icons";
 import { useTheme } from "../theme/ThemeProvider";
 import { money, LogEntry } from "../data/exam";
 
-export function LogRow({
+// Memoized: list rows only re-render when their own entry/flags change, not on
+// every parent state update (e.g. a scan appending elsewhere in the list).
+export const LogRow = React.memo(function LogRow({
   entry,
   showTime,
   onPress,
@@ -57,4 +59,4 @@ export function LogRow({
       </View>
     </Pressable>
   );
-}
+});

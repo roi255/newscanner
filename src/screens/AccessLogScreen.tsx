@@ -39,7 +39,7 @@ export function AccessLogScreen({ onBack }: { onBack: () => void }) {
           </View>
           <AppText className="font-jakarta-bold text-[16px] text-text">No access yet</AppText>
           <Body className="text-[13.5px] text-center" style={{ maxWidth: 250 }}>
-            Requests to an institution's OSIM API are logged here. Configure a connection in the OSIM config to start.
+            Requests to an institution’s OSIM API are logged here. Configure a connection in the OSIM config to start.
           </Body>
         </Card>
       ) : (

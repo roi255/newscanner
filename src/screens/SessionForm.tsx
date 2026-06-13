@@ -86,7 +86,7 @@ export function SessionForm({
                 </Pressable>
               </View>
               <Body className="text-[13px] mb-[18px]">
-                Set the exam being scanned. The card's QR overrides these per student.
+                Set the exam being scanned. The card’s QR overrides these per student.
               </Body>
 
               <FieldLabel>Exam code</FieldLabel>

@@ -5,8 +5,8 @@
 import React, { useState } from "react";
 import { View, Pressable } from "react-native";
 import { ScreenScroll } from "../components/Screen";
-import { H1, Body, AppText, LabelSm } from "../components/Typography";
-import { Card, Field, Button, InstitutionLogo } from "../components/ui";
+import { AppText, LabelSm } from "../components/Typography";
+import { Card, Field, Button, InstitutionLogo, ScreenHeader } from "../components/ui";
 import { I } from "../components/icons";
 import { useTheme } from "../theme/ThemeProvider";
 import { glow } from "../theme/util";
@@ -44,15 +44,16 @@ export function LoginScreen({
 
   return (
     <ScreenScroll contentClassName="px-[22px] pt-4 pb-8 grow">
-      <View className="items-center mt-[22px] mb-[26px]">
-        <View style={glow(tokens.hex.accent, 0.4, 14, 30)}>
-          <InstitutionLogo short={institution.short} logo={institution.logo} size={72} radius={24} textSize={24} />
-        </View>
-        <H1 className="mt-[18px] text-[26px]">Verify access</H1>
-        <Body className="mt-1.5 text-center" style={{ maxWidth: 260 }}>
-          Enter the email you use on OSIM to continue
-        </Body>
-      </View>
+      <ScreenHeader
+        media={
+          <View style={glow(tokens.hex.accent, 0.4, 14, 30)}>
+            <InstitutionLogo short={institution.short} logo={institution.logo} size={72} radius={24} textSize={24} />
+          </View>
+        }
+        title="Verify access"
+        subtitle="Enter the email you use on OSIM to continue"
+        subtitleMaxWidth={260}
+      />
 
       <Pressable onPress={onChangeInstitution} className="mb-5" style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}>
         <Card className="p-[18px] flex-row items-center justify-between">
