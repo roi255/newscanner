@@ -1,14 +1,15 @@
 /* directoryConfig.ts — side-effect module: point the app at the central
- * directory from the build-time env. Import once (App.tsx).
+ * directory. Import once (App.tsx).
  *
- * EXPO_PUBLIC_DIRECTORY_URL unset ⇒ directory stays unconfigured ⇒ the app falls
- * back to the bundled institution list (no behaviour change). Set it to the
- * directory's public base URL to activate runtime fetching.
- *
- * Static process.env.* member access so Expo inlines it at build time. */
+ * The base URL has a baked-in default, with an optional EXPO_PUBLIC_DIRECTORY_URL
+ * override for staging. Static process.env.* member access so Expo inlines it at
+ * build time. */
 import { configureDirectory } from "./directory";
 
+/** Default directory endpoint. Override via EXPO_PUBLIC_DIRECTORY_URL. */
+export const DEFAULT_DIRECTORY_URL = "https://passcan.campusmaster.cloud";
+
 configureDirectory({
-  baseUrl: process.env.EXPO_PUBLIC_DIRECTORY_URL ?? null,
-  appToken: process.env.EXPO_PUBLIC_DIRECTORY_TOKEN ?? null,
+  baseUrl: process.env.EXPO_PUBLIC_DIRECTORY_URL || DEFAULT_DIRECTORY_URL,
+  appToken: process.env.EXPO_PUBLIC_DIRECTORY_TOKEN || null,
 });

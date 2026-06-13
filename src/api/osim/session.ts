@@ -4,7 +4,7 @@
  * server returns { accessToken, refreshToken, expiresIn, identity }. The access
  * token is short-lived and used as the envelope token for data calls; when it's
  * near expiry (or a 401 comes back) we rotate it with the refresh token. Tokens
- * live only in the device secure store, scoped per institution, wiped on logout.
+ * are scoped per institution and wiped on logout.
  *
  * Server endpoints expected (per OSIM deployment):
  *   POST <baseUrl>/osimapp/staff/login    { staffId, pin, deviceId }
@@ -23,7 +23,7 @@ const DEFAULT_TTL_MS = 5 * 60_000; // fallback if server omits expiresIn
 
 const skey = (instId: string) => SESS_PREFIX + instId.replace(/[^A-Za-z0-9._-]/g, "_");
 
-/* ---- device id (stable, persisted; identifier, not a secret) ---- */
+/* ---- device id (stable, persisted) ---- */
 export async function getDeviceId(): Promise<string> {
   try {
     let id = await SecureStore.getItemAsync(DEVICE_KEY);

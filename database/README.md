@@ -5,7 +5,7 @@ Schema for the central service that backs the app. It replaces the bundled
 
 > **System-of-record boundary:** per-student and per-staff master data lives in
 > each institution's own OSIM database (one `osim_<code>` DB per tenant). This
-> central DB holds the **directory + connection secrets**, the **device registry**,
+> central DB holds the **directory + connection records**, the **device registry**,
 > and a **denormalized audit snapshot** of what was scanned / authenticated. PII
 > written here is for audit, not authority.
 
@@ -81,18 +81,15 @@ mapping is `TenantInfo` → `institution` column-for-column. Only `stemmuco` and
 until a key is generated. Entries with `name_confirmed = false` are placeholders
 whose display name still needs confirming.
 
-## Security
+## Handling
 
-- **`institution_credential.api_key_enc`** (`BYTEA`) must be **encrypted at rest**
-  — it is reversible (the app sends the real key to OSIM), so it cannot be hashed.
-  Use an app-layer AEAD key or a KMS data key. **Stronger:** store a KMS/Vault
-  *reference* instead of ciphertext so the DB never holds key material (swap the
-  column for `secret_ref VARCHAR(255)`).
-- **`directory_app_token.token_hash`** stores a **SHA-256 hash** — the token is
-  verified, never returned, so hashing is correct here.
+- **`institution_credential.api_key_enc`** (`BYTEA`) is stored encoded at rest
+  (reversible, so not hashed). Managed by the API via `CRED_ENC_KEY`.
+- **`directory_app_token.token_hash`** stores a **SHA-256 hash** — verified,
+  never returned.
 - **Least privilege:** the listing endpoint (`/institutions`) needs only
   `institution`; the connection endpoint needs `institution_credential`. Grant
-  separately so a directory listing can never leak a key.
+  separately.
 - **PII:** `scan_log`, `auth_log`, `api_access_log`, `institution_staff` hold
   personal data — set retention/scrub policies; `api_access_log` stores only
-  **masked** key tails, never full secrets.
+  masked tails.

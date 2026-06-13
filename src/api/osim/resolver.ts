@@ -1,47 +1,29 @@
-/* resolver.ts — resolves a per-institution connection + builds a scoped client
- * whose token comes from the staff-login session (short-lived, rotatable).
+/* resolver.ts — resolves a per-institution connection + builds a scoped client.
  *
- * Connection resolution order:
- *   1. device secure store   — connection already cached on this device
- *   2. central directory      — fetch { baseUrl, abbr }, then cache it
- *   3. dev static config      — local-testing fallback (may carry a raw apiKey)
- *
- * Token resolution:
- *   - production: the staff-login session access token (auto-refreshed)
- *   - dev static: a raw pre-shared apiKey (no refresh)
- */
+ * Resolution order: device cache → central directory (then cache). The client's
+ * token comes from the connection if it carries one, else the staff-login
+ * session (auto-refreshed). */
 import { OsimConnection } from "./types";
 import { OsimClient, OsimAuth } from "./client";
 import { getStoredConnection, storeConnection, clearStoredConnections } from "./secureStore";
-import { fetchInstitutionConnection } from "./directory";
-import { getStaticOsimConnection } from "./config";
+import { fetchInstitutionConnection, isDirectoryConfigured } from "./directory";
 import { getValidAccessToken, refreshSession, clearSession } from "./session";
 
 export async function resolveOsimConnection(instId: string): Promise<OsimConnection | null> {
-  // baseUrl + abbr: device cache → central directory. (The directory never
-  // returns a key — production tokens are minted by staff login; see authFor.)
+  // device cache → central directory, then cache the result on-device.
   const cached = await getStoredConnection(instId);
   const base = cached ?? (await fetchInstitutionConnection(instId));
   if (base && !cached) await storeConnection(instId, base);
-
-  // Dev static config may carry a raw apiKey for local testing. Overlay it onto
-  // the directory connection so keyed tenants keep working once the directory is
-  // configured. (Phase 2 replaces this with served/encrypted keys.)
-  const stat = getStaticOsimConnection(instId);
-  if (base) {
-    const apiKey = base.apiKey ?? stat?.apiKey;
-    return apiKey ? { ...base, apiKey } : base;
-  }
-  return stat;
+  return base;
 }
 
 function authFor(instId: string, conn: OsimConnection): OsimAuth {
   if (conn.apiKey) {
-    // DEV raw key — no rotation.
+    // connection carries its own token — no rotation here.
     const key = conn.apiKey;
     return { getToken: async () => key, onUnauthorized: async () => false };
   }
-  // Production — short-lived staff-login token, rotated on demand.
+  // Fallback — short-lived staff-login token, rotated on demand.
   return {
     getToken: () => getValidAccessToken(instId, conn.baseUrl),
     onUnauthorized: () => refreshSession(instId, conn.baseUrl),
@@ -67,4 +49,31 @@ export async function clearScopedConnection(instId: string): Promise<void> {
 /** Wipe everything scoped to this device — call on sign-out. */
 export async function clearScopedConnections(): Promise<void> {
   await clearStoredConnections();
+}
+
+export type AccessCheck = {
+  ok: boolean;
+  provisioned: boolean;
+  reason?: "unreachable" | "unprovisioned";
+};
+
+/** Registration gate, run when an institution is selected. Confirms the tenant
+ * is actually set up for ExamPass before the operator is let in, and caches its
+ * connection so the staff-login check can reuse it. */
+export async function ensureInstitutionAccess(instId: string): Promise<AccessCheck> {
+  if (!isDirectoryConfigured()) {
+    // The directory base URL has a baked-in default, so this only happens if it
+    // was explicitly overridden to empty — treat as unreachable.
+    return { ok: false, provisioned: false, reason: "unreachable" };
+  }
+  const cached = await getStoredConnection(instId);
+  if (cached?.apiKey) return { ok: true, provisioned: true };
+
+  const conn = await fetchInstitutionConnection(instId);
+  if (!conn) return { ok: false, provisioned: false, reason: "unreachable" };
+  if (conn.provisioned) {
+    await storeConnection(instId, conn); // cache for resolveOsimConnection
+    return { ok: true, provisioned: true };
+  }
+  return { ok: false, provisioned: false, reason: "unprovisioned" };
 }

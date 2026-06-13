@@ -27,7 +27,7 @@ function emit() {
   listeners.forEach((l) => l(snapshot));
 }
 
-/** Record one access. `apiKey` should already be masked to a non-secret tail. */
+/** Record one access. `apiKey` should already be masked to a short tail. */
 export function logAccess(e: Omit<AccessLogEntry, "id" | "at">): AccessLogEntry {
   const entry: AccessLogEntry = { ...e, id: ++seq, at: new Date().toISOString() };
   entries = [entry, ...entries].slice(0, 200); // keep the session's most recent 200
@@ -50,7 +50,7 @@ export function subscribeAccessLog(listener: Listener): () => void {
   return () => listeners.delete(listener);
 }
 
-/** Mask a token to a short, non-secret tail for log labels. */
+/** Mask a token to a short tail for log labels. */
 export function maskToken(token: string): string {
   if (!token) return "osim_api_app";
   return "osim_api_app·" + token.slice(-6);

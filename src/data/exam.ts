@@ -96,7 +96,8 @@ export function defaultSession(): Session {
 
 /* The college list, derived from the bundled tenant registry (institutions.ts).
  * Every tenant is a live OSIM tenant → operator flow + real exam-card scanning;
- * a tenant only scans once its API key is present (see src/api/osim/config.ts).
+ * a tenant only scans once it is provisioned in the central directory
+ * (see src/api/osim/directory.ts).
  * This whole array becomes a network call once the central directory exists. */
 export const INSTITUTIONS: Institution[] = TENANTS.map((t) => ({
   id: t.id,

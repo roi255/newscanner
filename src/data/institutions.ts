@@ -6,13 +6,11 @@
  * and the list is fetched + cached at runtime instead of shipped in the APK.
  *
  * Provenance: tenant ids/codes were extracted from the OSIM platform's
- * multi-tenant deployment manifests (each is an `osim_<id>` database +
- * `cis_sys_api_app` client). Test/template tenants (demo, institution1, mn2) are
- * intentionally excluded.
+ * multi-tenant deployment manifests. Test/template tenants (demo, institution1,
+ * mn2) are intentionally excluded.
  *
- * NOT in this file: the per-tenant API keys. Those are secrets stored inside
- * each tenant's own database — config.ts reads them from an UNTRACKED .env at
- * build time. Tenants with no key are inert (no live scanning) until one lands.
+ * Connection details for each tenant are resolved at runtime from the central
+ * directory; this file carries only public registry fields.
  *
  * PROVISIONAL — confirm before relying on a tenant for live scanning:
  *   • `name`    — entries marked `// TODO confirm` are placeholders (the code).

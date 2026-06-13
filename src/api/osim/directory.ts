@@ -1,15 +1,8 @@
 /* directory.ts — client for the central institution directory.
  *
- * This is the server-side table you described: it stores each institution's
- * name, abbr, OSIM base URL, and key token. The app queries it at selection
- * time to learn how to reach the chosen institution, then scopes to it.
- *
- * SECURITY: the directory endpoint returns a secret (the OSIM api_key), so it
- * MUST be authenticated (app-level credential / device attestation) and ideally
- * return a short-lived / rotatable token. The app caches the result in the
- * device secure store and clears it on logout. The directory base URL is set
- * via configureDirectory() — left null here, so the app falls back to mock/dev
- * config until the central service exists. */
+ * The directory maps each institution to how the app reaches it. The app queries
+ * it at selection time to learn how to connect to the chosen institution, then
+ * scopes to it. Configured via configureDirectory() (see directoryConfig.ts). */
 import { OsimConnection } from "./types";
 
 export interface DirectoryEntry {
@@ -44,7 +37,7 @@ function headers(): Record<string, string> {
   return h;
 }
 
-/** Non-secret listing for the institution search. Empty query → the full list. */
+/** Listing for the institution search. Empty query → the full list. */
 export async function searchDirectory(query: string): Promise<DirectoryEntry[]> {
   if (!config.baseUrl) return [];
   try {
@@ -64,10 +57,15 @@ export async function listInstitutions(): Promise<DirectoryEntry[]> {
   return searchDirectory("");
 }
 
-/** Fetch the (secret-free) connection for one tenant: { baseUrl, abbr }. The
- * access token is NOT here — staff login mints it. The directory endpoint must
- * be authenticated (see configureDirectory.appToken). */
-export async function fetchInstitutionConnection(instId: string): Promise<OsimConnection | null> {
+/** A directory connection plus the registration flag. `provisioned` marks a
+ * tenant that is set up for ExamPass. */
+export interface DirectoryConnection extends OsimConnection {
+  provisioned: boolean;
+}
+
+/** Fetch the connection for one tenant: { baseUrl, abbr, provisioned, apiKey? }.
+ * Cached by the resolver after the first fetch. */
+export async function fetchInstitutionConnection(instId: string): Promise<DirectoryConnection | null> {
   if (!config.baseUrl) return null;
   try {
     const r = await fetch(
@@ -75,9 +73,11 @@ export async function fetchInstitutionConnection(instId: string): Promise<OsimCo
       { headers: headers() }
     );
     const j = await r.json().catch(() => null);
-    const c = (j?.data ?? j) as Partial<OsimConnection> | null;
+    const c = (j?.data ?? j) as (Partial<OsimConnection> & { provisioned?: boolean }) | null;
     if (c && c.baseUrl && c.abbr) {
-      return { baseUrl: c.baseUrl, abbr: c.abbr };
+      const base: DirectoryConnection = { baseUrl: c.baseUrl, abbr: c.abbr, provisioned: !!c.provisioned };
+      if (c.apiKey) base.apiKey = c.apiKey;
+      return base;
     }
     return null;
   } catch {

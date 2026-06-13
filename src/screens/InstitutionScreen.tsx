@@ -2,7 +2,7 @@
  * Only registered institutions surface; an unmatched query is a "not registered"
  * empty state. Selecting one scopes branding + staff + roster for the app. */
 import React, { useMemo, useState } from "react";
-import { View, Pressable } from "react-native";
+import { View, Pressable, ActivityIndicator } from "react-native";
 import { ScreenScroll } from "../components/Screen";
 import { H1, Body, AppText, LabelSm } from "../components/Typography";
 import { Card, Field, InstitutionLogo } from "../components/ui";
@@ -16,11 +16,26 @@ export function InstitutionScreen({
   onSelect,
 }: {
   institutions: Institution[];
-  onSelect: (inst: Institution) => void;
+  onSelect: (inst: Institution) => Promise<{ ok: boolean; message?: string }> | void;
 }) {
   const { tokens } = useTheme();
   const [q, setQ] = useState("");
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [errId, setErrId] = useState<string | null>(null);
+  const [errMsg, setErrMsg] = useState("");
   const query = q.trim().toLowerCase();
+
+  async function handleSelect(inst: Institution) {
+    if (busyId) return; // ignore taps while a registration check is in flight
+    setBusyId(inst.id);
+    setErrId(null);
+    const res = await onSelect(inst);
+    setBusyId(null);
+    if (res && !res.ok) {
+      setErrId(inst.id);
+      setErrMsg(res.message || "This institution is unavailable.");
+    }
+  }
   const matches = useMemo(
     () =>
       query
@@ -61,17 +76,36 @@ export function InstitutionScreen({
 
       <View style={{ gap: 12 }}>
         {matches.map((inst) => (
-          <Pressable key={inst.id} onPress={() => onSelect(inst)} style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}>
-            <Card className="p-[18px] flex-row items-center justify-between" style={{ gap: 12 }}>
-              <View className="flex-row items-center gap-3.5 min-w-0 flex-1">
-                <InstitutionLogo short={inst.short} logo={inst.logo} size={52} radius={18} bg={inst.accent} textSize={18} />
+          <Pressable
+            key={inst.id}
+            onPress={() => handleSelect(inst)}
+            disabled={!!busyId}
+            style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}
+          >
+            <Card className="p-[18px]" style={{ gap: errId === inst.id ? 12 : 0 }}>
+              <View className="flex-row items-center justify-between" style={{ gap: 12 }}>
+                <View className="flex-row items-center gap-3.5 min-w-0 flex-1">
+                  <InstitutionLogo short={inst.short} logo={inst.logo} size={52} radius={18} bg={inst.accent} textSize={18} />
 
-                <View className="min-w-0 flex-1" style={{ gap: 5 }}>
-                  <AppText className="font-jakarta-bold text-[15.5px] leading-[21px] text-text">{inst.name}</AppText>
-                  <Body className="text-[12.5px]">{inst.location}</Body>
+                  <View className="min-w-0 flex-1" style={{ gap: 5 }}>
+                    <AppText className="font-jakarta-bold text-[15.5px] leading-[21px] text-text">{inst.name}</AppText>
+                    <Body className="text-[12.5px]">{inst.location}</Body>
+                  </View>
                 </View>
+                {busyId === inst.id ? (
+                  <ActivityIndicator size="small" color={tokens.hex.accent} />
+                ) : (
+                  <I.chevron size={20} color={tokens.hex.muted} />
+                )}
               </View>
-              <I.chevron size={20} color={tokens.hex.muted} />
+              {errId === inst.id ? (
+                <View className="flex-row items-start gap-2">
+                  <I.shield size={14} color={tokens.hex.danger} />
+                  <Body className="text-[12.5px] flex-1" style={{ color: tokens.hex.danger }}>
+                    {errMsg}
+                  </Body>
+                </View>
+              ) : null}
             </Card>
           </Pressable>
         ))}

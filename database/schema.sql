@@ -9,12 +9,12 @@
 --           definition — one schema, no porting later.
 --
 --  Tenant note: per-student/per-staff master data lives in each institution's
---  own OSIM database. This central DB holds the directory + connection secrets,
+--  own OSIM database. This central DB holds the directory + connection details,
 --  the device registry, and a denormalized audit trail. PII here is a SNAPSHOT
 --  for audit, not a system of record.
 --
 --  Load order:  schema.sql  →  seed_institutions.sql
---  Security   : see database/README.md (key encryption, PII, least-privilege).
+--  Notes      : see database/README.md (handling, PII, least-privilege).
 -- ============================================================================
 
 -- updated_at auto-touch (Postgres has no MySQL-style ON UPDATE CURRENT_TIMESTAMP)
@@ -26,7 +26,7 @@ $$ LANGUAGE plpgsql;
 --  A.  DIRECTORY  — the college list + how to reach each tenant
 -- ============================================================================
 
--- A.1  institution — the non-secret registry (safe to list/search).
+-- A.1  institution — the registry (safe to list/search).
 --      Maps 1:1 onto TenantInfo in src/data/institutions.ts.
 CREATE TABLE institution (
   id             BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -49,14 +49,14 @@ CREATE INDEX ix_institution_status ON institution(status);
 CREATE TRIGGER trg_institution_updated BEFORE UPDATE ON institution
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
--- A.2  institution_credential — SECRET per-tenant API keys (rotatable).
---      Separate table so the listing endpoint never touches key material.
---      One ACTIVE key per (tenant, environment); revoked rows kept as history.
+-- A.2  institution_credential — per-tenant connection credential (rotatable).
+--      Kept in its own table, out of the listing endpoint.
+--      One ACTIVE row per (tenant, environment); revoked rows kept as history.
 CREATE TABLE institution_credential (
   id             BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   institution_id BIGINT NOT NULL REFERENCES institution(id) ON DELETE CASCADE,
   environment    VARCHAR(8) NOT NULL DEFAULT 'prod' CHECK (environment IN ('dev','prod')),
-  api_key_enc    BYTEA NOT NULL,                        -- ciphertext / KMS ref — never plaintext
+  api_key_enc    BYTEA NOT NULL,                        -- stored encoded, not in the clear
   key_hint       VARCHAR(8),                            -- last few chars, ops identification only
   status         VARCHAR(8) NOT NULL DEFAULT 'active' CHECK (status IN ('active','revoked')),
   expires_at     TIMESTAMPTZ,
@@ -280,8 +280,8 @@ CREATE TABLE api_error_log (
 CREATE INDEX ix_error_inst_time ON api_error_log(institution_id, at);
 
 -- E.3  otp_challenge — short-lived email OTP, the second factor AFTER the live
---      OSIM membership check. Code stored hashed (never plaintext), single-use,
---      with expiry + an attempt cap. Rows are disposable (no retention concern).
+--      OSIM membership check. Code stored hashed, single-use, with expiry + an
+--      attempt cap. Rows are disposable (no retention concern).
 CREATE TABLE otp_challenge (
   id             BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   institution_id BIGINT REFERENCES institution(id) ON DELETE CASCADE,

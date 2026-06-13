@@ -1,7 +1,7 @@
 /* LoginScreen — institution-scoped access gate. The operator enters the email
  * they use on OSIM; we verify it belongs to a registered staff member of the
- * selected institution (api/staff/all) before letting them in. No password —
- * this confirms membership, not identity (see verifyMembership in AppState). */
+ * selected institution (api/staff/all) before letting them in. This confirms
+ * membership, not identity (see verifyMembership in AppState). */
 import React, { useState } from "react";
 import { View, Pressable } from "react-native";
 import { ScreenScroll } from "../components/Screen";

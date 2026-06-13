@@ -4,14 +4,11 @@
  * application/views/student/data_examination_cards_semester.php). */
 
 /** Per-institution connection. baseUrl identifies the institution (one OSIM
- * deployment = one institution); abbr is the expected org_abbr. The access
- * token is NOT here — it's minted by staff login (see session.ts) and kept in
- * the secure store. `apiKey` is optional and only used by the dev static
- * fallback (a raw pre-shared key for local testing). */
+ * deployment = one institution); abbr is the expected org_abbr. */
 export interface OsimConnection {
   baseUrl: string; // e.g. https://sis.institution.ac.tz
   abbr: string; // expected org_abbr — confirms we reached the right tenant
-  apiKey?: string; // DEV-ONLY raw key; production uses staff-login tokens
+  apiKey?: string;
 }
 
 /** Short-lived, rotatable session minted by staff login. */
@@ -49,7 +46,7 @@ export interface OsimIdentity {
 /** One staff record from `api/staff/all` (api.php::staff('all')). Used for the
  * email-membership check: an email that matches a record here proves the person
  * is registered staff at this institution (each tenant's DB holds only its own
- * users). No password is involved — see verifyMembership() in AppState. */
+ * users). See verifyMembership() in AppState. */
 export interface OsimStaffMember {
   reg_code: string | null;
   first_name: string | null;

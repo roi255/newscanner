@@ -1,7 +1,5 @@
 /* secureStore.ts — per-institution OSIM connections in the device Keychain/
- * Keystore (expo-secure-store). Tokens fetched from the central directory are
- * cached here (encrypted), scoped per institution, and wiped on logout — they
- * never live in the app bundle or in plaintext storage. */
+ * Keystore (expo-secure-store), scoped per institution and wiped on logout. */
 import * as SecureStore from "expo-secure-store";
 import { OsimConnection } from "./types";
 
@@ -33,7 +31,7 @@ export async function storeConnection(instId: string, conn: OsimConnection): Pro
     const idx = await readIndex();
     if (!idx.includes(instId)) await writeIndex([...idx, instId]);
   } catch {
-    /* secure store unavailable — fail closed (no caching) */
+    /* store unavailable — fail closed (no caching) */
   }
 }
 

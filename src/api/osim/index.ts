@@ -1,7 +1,7 @@
 /* OSIM app-API integration (scaffold). Mirrors osim/application/controllers/
  * apiapp.php: request envelope + checksum, institution verification, exam-permit
- * eligibility, and an access-log audit trail. Dormant until a connection is set
- * in config.ts — the app stays on mock data otherwise. */
+ * eligibility, and an access-log audit trail. Per-tenant connections are served
+ * by the central directory and cached on-device. */
 export * from "./types";
 export * from "./checksum";
 export * from "./qr";
@@ -11,7 +11,6 @@ export * from "./localStore";
 export * from "./accessLog";
 export * from "./eligibility";
 export * from "./client";
-export * from "./config";
 export * from "./directory";
 export * from "./secureStore";
 export * from "./session";
