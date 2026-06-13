@@ -17,14 +17,15 @@ export function AppText({ className, style, ...rest }: Props) {
   return <Text className={cx("font-jakarta text-text", className)} style={[base, style]} {...rest} />;
 }
 
-/* h1: 27 / 800 / -0.5 */
+/* h1: 27 / 800 / -0.5 — leading kept generous (≈1.33×) so descenders never clip
+ * under includeFontPadding:false; per-screen text-[2x] overrides inherit it. */
 export function H1({ className, style, ...rest }: Props) {
-  return <Text className={cx("font-jakarta-extrabold text-text text-[27px] leading-[30px]", className)} style={[base, style]} {...rest} />;
+  return <Text className={cx("font-jakarta-extrabold text-text text-[27px] leading-[36px]", className)} style={[base, style]} {...rest} />;
 }
 
-/* h2: 20 / 700 / -0.3 */
+/* h2: 20 / 700 / -0.3 — explicit leading so the line box has room for descenders. */
 export function H2({ className, style, ...rest }: Props) {
-  return <Text className={cx("font-jakarta-bold text-text text-[20px]", className)} style={[base, style]} {...rest} />;
+  return <Text className={cx("font-jakarta-bold text-text text-[20px] leading-[28px]", className)} style={[base, style]} {...rest} />;
 }
 
 /* eyebrow: 11.5 / 700 / 1.4 uppercase muted */

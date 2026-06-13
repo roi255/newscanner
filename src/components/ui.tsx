@@ -258,30 +258,37 @@ export function InstitutionLogo({
   textSize?: number;
 }) {
   const { tokens } = useTheme();
+  const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
-  if (logo && !failed) {
-    return (
-      <View
-        className="items-center justify-center overflow-hidden"
-        style={{ width: size, height: size, borderRadius: radius, backgroundColor: "#fff" }}
-      >
+  const showImage = !!logo && !failed;
+  // The initials are the ALWAYS-present base layer; the logo is overlaid and only
+  // revealed once it truly loads (onLoad). A slow/unreachable/404 logo therefore
+  // leaves clean initials instead of a blank white box — onError isn't guaranteed
+  // to fire on a hanging host, so we never commit to an empty image container.
+  return (
+    <View
+      className="items-center justify-center overflow-hidden"
+      style={{
+        width: size,
+        height: size,
+        borderRadius: radius,
+        backgroundColor: loaded ? "#fff" : bg ?? tokens.hex.accent,
+      }}
+    >
+      {!loaded && (
+        <AppText className="text-white font-jakarta-extrabold tracking-[-0.5px]" style={{ fontSize: textSize }}>
+          {short}
+        </AppText>
+      )}
+      {showImage && (
         <Image
           source={{ uri: logo }}
           resizeMode="contain"
+          onLoad={() => setLoaded(true)}
           onError={() => setFailed(true)}
-          style={{ width: size * 0.84, height: size * 0.84 }}
+          style={{ position: "absolute", top: size * 0.08, left: size * 0.08, width: size * 0.84, height: size * 0.84 }}
         />
-      </View>
-    );
-  }
-  return (
-    <View
-      className="items-center justify-center"
-      style={{ width: size, height: size, borderRadius: radius, backgroundColor: bg ?? tokens.hex.accent }}
-    >
-      <AppText className="text-white font-jakarta-extrabold tracking-[-0.5px]" style={{ fontSize: textSize }}>
-        {short}
-      </AppText>
+      )}
     </View>
   );
 }
@@ -393,7 +400,7 @@ export function AppBar({
           </Pressable>
         ) : null}
         <View className="min-w-0">
-          <H2 className="leading-[22px]">{title}</H2>
+          <H2 className="leading-[26px]">{title}</H2>
           {sub ? <Body className="text-[13px] mt-0.5">{sub}</Body> : null}
         </View>
       </View>

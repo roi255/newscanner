@@ -66,8 +66,8 @@ export function InstitutionScreen({
               <View className="flex-row items-center gap-3.5 min-w-0 flex-1">
                 <InstitutionLogo short={inst.short} logo={inst.logo} size={52} radius={18} bg={inst.accent} textSize={18} />
 
-                <View className="min-w-0 flex-1" style={{ gap: 3 }}>
-                  <AppText className="font-jakarta-bold text-[15.5px] leading-[18px] text-text">{inst.name}</AppText>
+                <View className="min-w-0 flex-1" style={{ gap: 5 }}>
+                  <AppText className="font-jakarta-bold text-[15.5px] leading-[21px] text-text">{inst.name}</AppText>
                   <Body className="text-[12.5px]">{inst.location}</Body>
                 </View>
               </View>

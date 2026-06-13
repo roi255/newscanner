@@ -6,7 +6,7 @@ import React, { useState } from "react";
 import { View, Pressable } from "react-native";
 import { ScreenScroll } from "../components/Screen";
 import { H1, Body, AppText, LabelSm } from "../components/Typography";
-import { Card, Field, Button } from "../components/ui";
+import { Card, Field, Button, InstitutionLogo } from "../components/ui";
 import { I } from "../components/icons";
 import { useTheme } from "../theme/ThemeProvider";
 import { glow } from "../theme/util";
@@ -45,13 +45,8 @@ export function LoginScreen({
   return (
     <ScreenScroll contentClassName="px-[22px] pt-4 pb-8 grow">
       <View className="items-center mt-[22px] mb-[26px]">
-        <View
-          className="w-[72px] h-[72px] rounded-lg bg-accent items-center justify-center"
-          style={glow(tokens.hex.accent, 0.4, 14, 30)}
-        >
-          <AppText className="text-white font-jakarta-extrabold text-[24px] tracking-[-0.5px]">
-            {institution.short}
-          </AppText>
+        <View style={glow(tokens.hex.accent, 0.4, 14, 30)}>
+          <InstitutionLogo short={institution.short} logo={institution.logo} size={72} radius={24} textSize={24} />
         </View>
         <H1 className="mt-[18px] text-[26px]">Verify access</H1>
         <Body className="mt-1.5 text-center" style={{ maxWidth: 260 }}>
@@ -61,16 +56,16 @@ export function LoginScreen({
 
       <Pressable onPress={onChangeInstitution} className="mb-5" style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}>
         <Card className="p-[18px] flex-row items-center justify-between">
-          <View className="flex-row items-center gap-3">
+          <View className="flex-row items-center gap-3 flex-1">
             <View className="w-10 h-10 rounded-sm bg-accent-soft items-center justify-center">
               <I.cap size={20} color={tokens.hex["accent-ink"]} />
             </View>
-            <View style={{ gap: 1 }}>
+            <View style={{ gap: 1 }} className="flex-1">
               <LabelSm>Institution</LabelSm>
               <AppText className="font-jakarta-bold text-[14.5px] text-text">{institution.name}</AppText>
             </View>
           </View>
-          <AppText className="text-[12.5px] font-jakarta-bold text-accent-ink">Change</AppText>
+          <AppText className="text-[12.5px] font-jakarta-bold text-accent-ink underline ml-3 shrink-0">Change</AppText>
         </Card>
       </Pressable>
 

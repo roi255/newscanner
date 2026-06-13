@@ -81,7 +81,7 @@ export function ScanHomeScreen({
         <Mono className="text-[12px] text-white tracking-[0.5px] mb-0.5" style={{ opacity: 0.85 }}>
           {examCategoryLabel(session.examCategory)} · Sem {session.semester || "1"}
         </Mono>
-        <AppText className="text-[19px] font-jakarta-extrabold text-white tracking-[-0.3px] leading-[22px]">
+        <AppText className="text-[19px] font-jakarta-extrabold text-white tracking-[-0.3px] leading-[25px]">
           {session.code || session.name}
         </AppText>
         <View className="flex-row flex-wrap items-center mt-3" style={{ gap: 14 }}>

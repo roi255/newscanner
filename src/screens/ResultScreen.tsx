@@ -93,7 +93,7 @@ export function ResultScreen({
           <View className="flex-row items-center" style={{ gap: 15 }}>
             <StudentPhoto student={student} size={88} />
             <View className="flex-1 min-w-0 pt-0.5" style={{ gap: 4 }}>
-              <H2 className="text-[19px] leading-[21px]">
+              <H2 className="text-[19px] leading-[25px]">
                 {student.name} <AppText className="text-muted font-jakarta-bold">({student.gender.charAt(0)})</AppText>
               </H2>
               <Mono className="text-[13px] text-text-2">{student.regId}</Mono>
@@ -104,11 +104,11 @@ export function ResultScreen({
                   </AppText>
                 </Pill>
               ) : null}
-              <Pill className="bg-surface-2 self-start">
-                <AppText className="text-text-2 font-jakarta-bold text-[12.5px]" numberOfLines={1}>
+              <View className="bg-surface-2 self-start rounded-pill px-3 py-1.5 max-w-full">
+                <AppText className="text-text-2 font-jakarta-bold text-[12.5px] leading-[16px]" numberOfLines={2}>
                   {student.program}
                 </AppText>
-              </Pill>
+              </View>
             </View>
           </View>
         </Card>

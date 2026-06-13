@@ -75,6 +75,10 @@ export interface LogEntry {
   seat: string;
   method: ScanMethod;
   source: ScanSource;
+  // The exam category this scan was for (fe, supp, …). History is scoped to one
+  // (student, examCategory): a re-scan for the same category updates the single
+  // entry rather than adding a duplicate. Different categories are separate rows.
+  examCategory?: string;
 }
 
 function S(
@@ -177,6 +181,7 @@ export function makeSeedLog(inst: Institution): LogEntry[] {
       seat: s.seat,
       method: (i % 3 === 1 ? "lookup" : "scan") as ScanMethod,
       source: "cache" as ScanSource,
+      examCategory: inst.session.examCategory,
     }));
 }
 
