@@ -6,7 +6,7 @@ TMP     := incoming
 REMOTE  := origin
 BRANCH  := main
 
-.PHONY: verify update first sync clean help
+.PHONY: verify update first sync clean help apk
 
 help:
 	@echo "make verify  - check the bundle is intact"
@@ -39,3 +39,8 @@ clean:
 	-git branch -D $(TMP)
 	-rm -f $(BUNDLE)
 	@echo "Cleaned up $(BUNDLE) and branch $(TMP)."
+
+apk:
+    npx expo prebuild --platform android
+    cd android
+    ./gradlew assembleRelease
