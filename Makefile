@@ -41,6 +41,6 @@ clean:
 	@echo "Cleaned up $(BUNDLE) and branch $(TMP)."
 
 apk:
-    npx expo prebuild --platform android
-    cd android
-    ./gradlew assembleRelease
+	npx expo prebuild --platform android
+	cd android
+	./gradlew assembleRelease
