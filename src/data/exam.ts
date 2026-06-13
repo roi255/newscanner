@@ -70,6 +70,9 @@ export interface LogEntry {
   name: string;
   gender: string;
   balance: number;
+  /** Currency symbol for `balance` (e.g. "TZS "), so history shows the real
+   * currency the student was charged, not a hardcoded "$". */
+  currency?: string;
   authorized: boolean;
   at: string;
   seat: string;
@@ -88,7 +91,7 @@ export function defaultSession(): Session {
     name: "Final Examinations",
     venue: "Main Hall",
     date: new Date().toISOString().slice(0, 10),
-    time: "09:00 – 12:00",
+    time: "09:00",
     examCategory: "fe",
     semester: "1",
   };
@@ -143,6 +146,7 @@ export function makeSeedLog(inst: Institution): LogEntry[] {
       name: s.name,
       gender: s.gender,
       balance: s.balance,
+      currency: s.currency,
       authorized: s.balance <= 0,
       at: times[i] || "08:30",
       seat: s.seat,

@@ -95,7 +95,7 @@ export function ScanHomeScreen({
           </View>
           <View className="flex-row items-center gap-1.5">
             <I.clock size={15} color="#fff" />
-            <AppText className="text-white font-jakarta-semibold text-[12.5px]" style={{ opacity: 0.92 }}>{session.time}</AppText>
+            <AppText className="text-white font-jakarta-semibold text-[12.5px]" style={{ opacity: 0.92 }}>{(session.time || "").split(/[–-]/)[0].trim()}</AppText>
           </View>
         </View>
       </View>

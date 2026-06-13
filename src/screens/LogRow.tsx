@@ -51,7 +51,7 @@ export const LogRow = React.memo(function LogRow({
           className="font-jakarta-bold text-[13px]"
           style={{ color: entry.authorized ? tokens.hex.success : tokens.hex.danger }}
         >
-          {entry.authorized ? "Cleared" : money("$", entry.balance)}
+          {entry.authorized ? "Cleared" : money(entry.currency ?? "TZS ", entry.balance)}
         </AppText>
         <Mono className="text-[10.5px] text-muted">
           {showTime ? entry.at : entry.method === "lookup" ? "Lookup" : "Scan"}
