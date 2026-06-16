@@ -9,6 +9,7 @@ export interface DirectoryEntry {
   id: string;
   name: string;
   abbr: string;
+  connectId: string; // pre-shared 6-char institution ID; the picker's search key
   baseUrl: string;
   short: string;
   location: string;

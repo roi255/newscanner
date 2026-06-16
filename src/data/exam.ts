@@ -54,6 +54,8 @@ export interface Institution {
   name: string;
   short: string;
   location: string;
+  /** pre-shared 6-char institution ID — the only key the picker search matches on. */
+  connectId: string;
   accent: string;
   recordCount: number;
   session: Session;
@@ -107,6 +109,7 @@ export const INSTITUTIONS: Institution[] = TENANTS.map((t) => ({
   name: t.name,
   short: t.short,
   location: t.location,
+  connectId: t.connectId,
   accent: t.accent,
   logo: `${t.baseUrl}/themes/img/logo.jpg`,
   recordCount: 0,

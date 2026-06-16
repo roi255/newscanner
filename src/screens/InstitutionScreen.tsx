@@ -1,6 +1,8 @@
-/* InstitutionScreen — live search over the registered-institution registry.
- * Only registered institutions surface; an unmatched query is a "not registered"
- * empty state. Selecting one scopes branding + staff + roster for the app. */
+/* InstitutionScreen — connect by pre-shared institution ID.
+ * The registry is never browsable: the search resolves only on an exact match
+ * of the 6-character institution ID shared with the institution by ExamPass.
+ * Anything else is a "not found" empty state. Selecting one scopes branding +
+ * staff + roster for the app. */
 import React, { useMemo, useState } from "react";
 import { View, Pressable, ActivityIndicator } from "react-native";
 import { ScreenScroll } from "../components/Screen";
@@ -23,7 +25,8 @@ export function InstitutionScreen({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [errId, setErrId] = useState<string | null>(null);
   const [errMsg, setErrMsg] = useState("");
-  const query = q.trim().toLowerCase();
+  // The institution ID is the only key: 6-char, case-insensitive, ignore spaces.
+  const query = q.replace(/\s+/g, "").toUpperCase();
 
   async function handleSelect(inst: Institution) {
     if (busyId) return; // ignore taps while a registration check is in flight
@@ -36,12 +39,12 @@ export function InstitutionScreen({
       setErrMsg(res.message || "This institution is unavailable.");
     }
   }
+  // Exact match only — a partial ID resolves to nothing, so the list is never
+  // browsable by name. The full ID (6 chars) yields the one institution or none.
   const matches = useMemo(
     () =>
-      query
-        ? institutions.filter((i) =>
-            (i.name + " " + i.short + " " + i.location).toLowerCase().includes(query)
-          )
+      query.length >= 6
+        ? institutions.filter((i) => (i.connectId || "").toUpperCase() === query)
         : [],
     [query, institutions]
   );
@@ -54,9 +57,9 @@ export function InstitutionScreen({
       >
         <I.scan size={32} sw={2.1} color="#fff" />
       </View>
-      <H1>Find your institution</H1>
+      <H1>Connect your institution</H1>
       <Body className="mt-2 mb-[18px]">
-        Search the institutions registered with ExamPass.
+        Enter your institution ID code.
       </Body>
 
       <Field
@@ -64,14 +67,16 @@ export function InstitutionScreen({
         value={q}
         onChangeText={setQ}
         autoFocus
-        placeholder="Search by name or code…"
+        autoCapitalize="characters"
+        autoCorrect={false}
+        maxLength={6}
+        placeholder="Institution ID"
         className="mb-[18px]"
+        inputClassName="tracking-[2px] uppercase"
       />
 
-      {query ? (
-        <LabelSm className="mb-2.5">
-          {matches.length + " result" + (matches.length === 1 ? "" : "s")}
-        </LabelSm>
+      {query.length >= 6 && matches.length ? (
+        <LabelSm className="mb-2.5">Institution found</LabelSm>
       ) : null}
 
       <View style={{ gap: 12 }}>
@@ -110,27 +115,16 @@ export function InstitutionScreen({
           </Pressable>
         ))}
 
-        {query && matches.length === 0 ? (
+        {query.length >= 6 && matches.length === 0 ? (
           <Card className="p-[18px] items-center" style={{ gap: 8, paddingVertical: 34, paddingHorizontal: 24 }}>
             <View className="w-[52px] h-[52px] rounded-md bg-surface-2 items-center justify-center">
               <I.search size={26} color={tokens.hex.muted} />
             </View>
             <AppText className="font-jakarta-bold text-[16px] text-text">No institution found</AppText>
             <Body className="text-[13.5px] text-center" style={{ maxWidth: 230 }}>
-              “{q}” isn’t registered with ExamPass yet. Check the spelling or contact your administrator.
+              No institution matches the ID “{query}”. Check it with your administrator.
             </Body>
           </Card>
-        ) : null}
-
-        {!query ? (
-          <View className="items-center" style={{ gap: 10, paddingVertical: 30, paddingHorizontal: 24 }}>
-            <View className="w-[52px] h-[52px] rounded-md bg-surface-2 items-center justify-center">
-              <I.cap size={26} color={tokens.hex.muted} />
-            </View>
-            <Body className="text-[13.5px] text-center" style={{ maxWidth: 230 }}>
-              Start typing to find your institution in the ExamPass registry.
-            </Body>
-          </View>
         ) : null}
       </View>
 

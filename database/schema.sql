@@ -34,6 +34,7 @@ CREATE TABLE institution (
   name           VARCHAR(200) NOT NULL,
   short_name     VARCHAR(12)  NOT NULL,                 -- logo text
   org_abbr       VARCHAR(40)  NOT NULL UNIQUE,          -- expected org_abbr; client.ts checks it
+  connect_id     CHAR(6)      NOT NULL UNIQUE,          -- pre-shared institution ID; the picker's only search key
   location       VARCHAR(120),
   accent         CHAR(7)      NOT NULL DEFAULT '#1f6f4a' CHECK (accent ~ '^#[0-9A-Fa-f]{6}$'),
   base_url       VARCHAR(255) NOT NULL,                 -- no trailing slash

@@ -22,6 +22,7 @@ function toInstitution(e: DirectoryEntry): Institution {
     name: e.name,
     short: e.short,
     location: e.location,
+    connectId: e.connectId,
     accent: e.accent,
     logo: e.logo,
     recordCount: 0,
